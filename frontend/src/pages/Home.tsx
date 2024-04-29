@@ -1,6 +1,7 @@
 import React from "react";
 import { Button } from "antd";
 import { useNavigate } from "react-router-dom";
+import WebSocketClient from "../components/WebSocketClient";
 
 function Home() {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ function Home() {
         <Button type="primary" className="mt-4">
           Play
         </Button>
+        <WebSocketClient url="ws://localhost:8080" />
         <Button onClick={handleLogout}>Logout</Button>
       </div>
     </div>

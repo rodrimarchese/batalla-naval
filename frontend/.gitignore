@@ -22,3 +22,5 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+# Ignorar archivos .DS_Store en repositorios Git
+.DS_Store
