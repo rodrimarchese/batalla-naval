@@ -10,7 +10,9 @@
 Mono-repositorio con:
 
 -Backend: API REST en Node TypeScript
+
 -Frontend: React+vite TypeScript + Clerk (Auth)
+
 -Base de datos: ...?
 
 ## Instrucciones de uso
