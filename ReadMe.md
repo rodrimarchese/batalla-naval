@@ -16,7 +16,9 @@ Mono-repositorio con:
 ## Instrucciones de uso
 
 1- Clonar el repositorio
+
 2- Credenciales de los `.env.local`
+
 3- Backend:
 
 ```bash
