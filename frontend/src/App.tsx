@@ -27,8 +27,6 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<AppLayout />}>
             {" "}
-            <Route index element={<Home />} />
-            "/"
             <Route path="home" element={<Home />} />
             <Route path="history" element={<History />} />
           </Route>

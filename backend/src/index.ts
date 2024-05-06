@@ -13,6 +13,7 @@ import {
   StrictAuthProp,
 } from "@clerk/clerk-sdk-node";
 import { createClient } from "@supabase/supabase-js";
+import { userRoutes } from "./routes";
 
 // Cargar variables de entorno
 process.loadEnvFile(".env.local");
@@ -50,7 +51,8 @@ wss.on("connection", (ws) => {
   ws.send("Welcome to the WebSocket server!");
 });
 
-app.use(express.json()); // Este es el middleware para parsear JSON.
+app.use(express.json());
+app.use(userRoutes); 
 
 app.get(
   "/protected-route",
@@ -72,6 +74,12 @@ app.get(
 app.post("/data", async (req, res) => {
   const body = req.body; // Ahora `body` debería tener la estructura JSON que fue parseada por express.json()
   console.log("Event received:", JSON.stringify(body, null, 2)); // Mejora la impresión del JSON para una mejor legibilidad
+
+  // Supabase
+  const { data, error } = await supabase.from("users").insert([
+    { id: body.userId, name: body.name, email: body.email},
+  ]);
+
 
   res.json({ message: "Event received", yourData: body }); // Envía una respuesta incluyendo los datos recibidos para confirmar
 });
