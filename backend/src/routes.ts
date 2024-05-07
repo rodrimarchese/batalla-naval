@@ -7,6 +7,7 @@ import {
   createGameWithUsers,
   getAllPendingGames,
 } from './game/gameController';
+import { addBoard } from './board/boardController';
 
 export const userRoutes = Router();
 
@@ -20,3 +21,5 @@ userRoutes.post('/openGame', createGameOpen);
 userRoutes.get('/game/pending', getAllPendingGames);
 
 userRoutes.put('/game/addMe', addMeToGame);
+
+userRoutes.post('/board', addBoard);

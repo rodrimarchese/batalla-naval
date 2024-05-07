@@ -41,3 +41,14 @@ export function convertGames(data: any[]): Game[] {
     };
   });
 }
+
+export function convertToGameByData(data: any): Game | null {
+  if (data == null) return null;
+  return {
+    id: data.id,
+    host: data.host,
+    guest: data.guest,
+    status: mapStatusFromDB(data.status),
+    createdAt: new Date(data.created_at),
+  };
+}
