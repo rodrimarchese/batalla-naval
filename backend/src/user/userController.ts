@@ -1,7 +1,7 @@
 // user.controller.ts
 // recibe un /createUser webhook, para pergarle a supabase y crear un user en supabase con la info que me venga
 import { Request, Response } from 'express';
-import { supabase } from './supabase';
+import { saveUser } from './userService';
 
 // export const getUsers = async (req: Request, res: Response) => {
 //     try {
@@ -14,40 +14,24 @@ import { supabase } from './supabase';
 //   };
 
 export async function createUser(req: Request, res: Response) {
-  module.exports = {
-    printWidth: 80,
-    tabWidth: 2,
-    useTabs: false,
-    semi: true,
-    singleQuote: true,
-    trailingComma: 'all',
-    bracketSpacing: true,
-    arrowParens: 'avoid',
-  };
+  try {
+    const body = req.body;
+    const userData = body.data;
 
-  const body = req.body;
-  const userData = body.data;
+    const user = await saveUser(
+      userData.id.toString(),
+      userData.first_name,
+      userData.last_name,
+      userData.email_addresses[0].email_address,
+    );
 
-  const user = {
-    id: userData.id.toString(),
-    name: userData.first_name + ' ' + userData.last_name,
-    email: userData.email_addresses[0].email_address,
-  };
+    console.log('user', user);
 
-  console.log('user', user);
-
-  const { data, error } = await supabase.from('users').insert([user]);
-
-  if (error) {
-    console.error('Error inserting user in database:', error);
-    return res
-      .status(500)
-      .json({ message: 'Error inserting user in database' });
+    res.json({ message: 'Event received', yourData: body });
+  } catch (error) {
+    console.error('Error saving user:', error);
+    return res.status(500).json({ message: 'Error saving user' });
   }
-
-  console.log('data', data);
-
-  res.json({ message: 'Event received', yourData: body });
 }
 
 // export const updateUser = async (req: Request, res: Response) => {
