@@ -1,4 +1,4 @@
-import { SignUp, useUser} from "@clerk/clerk-react";
+import { SignUp, useUser } from "@clerk/clerk-react";
 
 export default function SignUpPage() {
   // const handleAfterSignUp = async (user) => {
@@ -23,5 +23,5 @@ export default function SignUpPage() {
   //   }
   // };
 
-  return <SignUp path="/sign-up" />;
+  return <SignUp path="/sign-up" fallbackRedirectUrl={"/home"} />;
 }
