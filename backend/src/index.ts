@@ -35,20 +35,55 @@ declare global {
   }
 }
 
+const userConnections = new Map<string, WebSocket>();
+interface WebSocketMessage {
+  userId: string;
+  content: string;
+}
 // WebSocket connection setup
-wss.on('connection', ws => {
+wss.on('connection', (ws: WebSocket) => {
   console.log('A client connected via WebSocket.');
 
-  ws.on('message', message => {
-    console.log(`Received message: ${message}`);
-    ws.send(`Echo: ${message}`);
+  wss.on('message', (message: string) => {
+    try {
+      const parsedMessage: WebSocketMessage = JSON.parse(message);
+      const { userId, content } = parsedMessage;
+      console.log(`Received message from user ${userId}: ${content}`);
+
+      const echoMessage: WebSocketMessage = {
+        userId,
+        content: `Echo: ${content}`,
+      };
+      const userConnection = userConnections.get(userId);
+      if (userConnection) {
+        userConnection.send(JSON.stringify(echoMessage));
+      }
+    } catch (error) {
+      console.error('Error al analizar el mensaje JSON:', error);
+    }
   });
 
-  ws.on('close', () => {
+  wss.on('close', () => {
     console.log('A client disconnected');
+
+    userConnections.forEach((connection, id) => {
+      if (connection === ws) {
+        userConnections.delete(id);
+      }
+    });
   });
 
-  ws.send('Welcome to the WebSocket server!');
+  wss.on('connection', (message: string) => {
+    try {
+      const parsedMessage: WebSocketMessage = JSON.parse(message);
+      const { userId } = parsedMessage;
+      console.log(`User ${userId} connected.`);
+
+      userConnections.set(userId, ws);
+    } catch (error) {
+      console.error('Error al analizar el mensaje JSON:', error);
+    }
+  });
 });
 
 app.use(express.json());
