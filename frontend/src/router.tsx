@@ -1,10 +1,10 @@
 // router.tsx
-import React from "react";
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import RootLayout from "./layouts/RootLayout";
 import DashboardLayout from "./layouts/DashboardLayout";
 import Home from "./pages/Home";
-import History from "./pages/History";
+import Games from "./pages/Games";
+import NewGame from "./pages/NewGame"; // Importa el nuevo componente aquí
 import SignInPage from "./pages/SignIn";
 import SignUpPage from "./pages/SignUp";
 import AuthWrapper from "./AuthWrapper";
@@ -17,19 +17,24 @@ export const router = createBrowserRouter([
       { path: "sign-in", element: <SignInPage /> },
       { path: "sign-up", element: <SignUpPage /> },
       {
-        path: "/", // Aquí se maneja directamente el AuthWrapper en la raíz
+        path: "/",
         element: (
           <AuthWrapper>
             <DashboardLayout />
           </AuthWrapper>
         ),
         children: [
-          { path: "/", element: <Navigate to="home" replace /> }, // Redireccionamiento a home
-          { path: "home", element: <Home /> }, // Página de inicio como ruta home
-          { path: "history", element: <History /> }, // Otra ruta protegida
+          { path: "/", element: <Navigate to="home" replace /> },
+          { path: "home", element: <Home /> },
+          {
+            path: "games",
+            element: <Games />,
+          },
+          { path: "games/new", element: <NewGame /> },
+          { path: "game/:id", element: <NewGame /> },
         ],
       },
-      { path: "*", element: <Navigate to="/home" replace /> }, // Redireccionamiento general a home si no coincide ninguna ruta
+      { path: "*", element: <Navigate to="/home" replace /> },
     ],
   },
 ]);

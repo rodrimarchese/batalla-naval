@@ -1,18 +1,13 @@
 import * as React from "react";
-import { useAuth, useSession } from "@clerk/clerk-react";
+import { useAuth } from "@clerk/clerk-react";
 import { Outlet, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 
 export default function DashboardLayout() {
   const { userId, isLoaded } = useAuth();
-  const { isSignedIn, session } = useSession();
-
-  console.log("Session:", session);
-  console.log("isSignedIn:", isSignedIn);
+  // const { isSignedIn, session } = useSession();
 
   const navigate = useNavigate();
-
-  console.log(userId);
 
   React.useEffect(() => {
     if (isLoaded && !userId) {

@@ -63,3 +63,12 @@ export async function addMeToGame(req: Request, res: Response) {
     return res.status(500).json({ message: 'Error updating game' });
   }
 }
+
+export async function getGame(req: Request, res: Response) {
+  try {
+    const game = await gameById(req.params.id);
+    return res.json({ message: 'Event received', yourData: game });
+  } catch (error: any) {
+    return res.status(500).json({ message: 'Error getting game' });
+  }
+}

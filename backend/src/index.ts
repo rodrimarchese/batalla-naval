@@ -14,6 +14,7 @@ import {
 } from '@clerk/clerk-sdk-node';
 import { createClient } from '@supabase/supabase-js';
 import { userRoutes } from './routes';
+import cors from 'cors';
 
 // Cargar variables de entorno
 process.loadEnvFile('.env.local');
@@ -21,6 +22,7 @@ process.loadEnvFile('.env.local');
 const app: Application = express();
 const server: HTTPServer = new HTTPServer(app);
 const wss: WebSocketServer = new WebSocketServer({ server });
+app.use(cors());
 
 const port: number = parseInt(process.env.PORT as string, 10) || 8080;
 
@@ -106,17 +108,23 @@ app.get(
 );
 
 // add whebhook route /data
-app.post('/data', async (req, res) => {
-  const body = req.body; // Ahora `body` debería tener la estructura JSON que fue parseada por express.json()
-  console.log('Event received:', JSON.stringify(body, null, 2)); // Mejora la impresión del JSON para una mejor legibilidad
+// app.post('/createUser', async (req, res) => {
+//   const body = req.body; // Ahora `body` debería tener la estructura JSON que fue parseada por express.json()
+//   console.log('Event received:', JSON.stringify(body, null, 2)); // Mejora la impresión del JSON para una mejor legibilidad
 
-  // Supabase
-  const { data, error } = await supabase
-    .from('users')
-    .insert([{ id: body.userId, name: body.name, email: body.email }]);
+//   const userData = body.data;
 
-  res.json({ message: 'Event received', yourData: body }); // Envía una respuesta incluyendo los datos recibidos para confirmar
-});
+//   // Supabase
+//   const { data, error } = await supabase.from('users').insert([
+//     {
+//       id: userData.id,
+//       name: userData.first_name + ' ' + userData.last_name,
+//       email: userData.email_addresses[0].email_address,
+//     },
+//   ]);
+
+//   res.json({ message: 'Event received', yourData: body }); // Envía una respuesta incluyendo los datos recibidos para confirmar
+// });
 
 app.use(
   (

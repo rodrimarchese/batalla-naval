@@ -11,15 +11,15 @@ const Sidebar = () => {
             to="/home"
             className="block px-4 py-2 hover:bg-gray-700 transition-colors"
           >
-            Play
+            Jugar
           </Link>
         </li>
         <li>
           <Link
-            to="/history"
+            to="/games"
             className="block px-4 py-2 hover:bg-gray-700 transition-colors"
           >
-            History
+            Partidas
           </Link>
         </li>
       </ul>

@@ -8,8 +8,6 @@
     "outDir": "./dist",
     "rootDir": "./src"
   },
-  "include": ["src/**/*",
-    "src/db/supabase.ts"
-  ],
+  "include": ["src/**/*", "src/*", "src/db/supabase.ts"],
   "exclude": ["node_modules"]
 }

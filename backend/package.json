@@ -5,7 +5,8 @@
   "scripts": {
     "start": "ts-node src/index.ts",
     "dev": "nodemon --watch src --exec ts-node src/index.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint . --ext .ts,.tsx"
   },
   "nodemonConfig": {
     "watch": [
@@ -24,12 +25,14 @@
   "dependencies": {
     "@clerk/clerk-sdk-node": "^5.0.2",
     "@supabase/supabase-js": "^2.42.7",
+    "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "http": "^0.0.1-security",
     "ws": "^8.17.0"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/node": "^20.12.7",
     "@types/ws": "^8.5.10",
