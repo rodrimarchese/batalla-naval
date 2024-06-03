@@ -26,6 +26,7 @@ export function mapStatusToDB(status: GameStatus): string {
 export function mapStatusFromDB(statusInDB: string): GameStatus {
   if (statusInDB == 'started') return GameStatus.Started;
   if (statusInDB == 'pending') return GameStatus.Pending;
+  if (statusInDB == 'settingUp') return GameStatus.SettingUp;
   if (statusInDB == 'finished') return GameStatus.Finished;
   else return GameStatus.Pending;
 }

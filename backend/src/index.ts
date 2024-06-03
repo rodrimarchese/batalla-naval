@@ -15,7 +15,7 @@ import {
 import { createClient } from '@supabase/supabase-js';
 import { userRoutes } from './routes';
 import cors from 'cors';
-import {MessageSend} from './socket/types'
+import { MessageSend } from './socket/types';
 
 // Cargar variables de entorno
 process.loadEnvFile('.env.local');
@@ -47,52 +47,40 @@ interface WebSocketMessage {
 wss.on('connection', (ws: WebSocket) => {
   console.log('A client connected via WebSocket.');
 
+  // Manejar mensajes entrantes
   wss.on('message', (message: string) => {
+    console.log('Received:', message);
     try {
-      console.log(message);
+      const data = JSON.parse(message);
+      console.log(`Received message: ${message}`);
 
-      //ACA IRIA QUE ME PASEN Y YO VER QUE TIPO DE MENSAJE ES Y AHI VER
+      if (data.userId) {
+        console.log(`User ${data.userId} connected.`);
+        // Guardar la conexión con el userId específico
+        userConnections.set(data.userId, ws);
+      }
 
-
-      //const parsedMessage: WebSocketMessage = JSON.parse(message);
-      //const { userId, content } = parsedMessage;
-      //console.log(`Received message from user ${userId}: ${content}`);
-
-      // const echoMessage: WebSocketMessage = {
-      //   userId,
-      //   content: `Echo: ${content}`,
-      // };
-      //const userConnection = userConnections.get(userId);
-      // if (userConnection) {
-      //   userConnection.send(JSON.stringify(echoMessage));
-      // }
-      //aca iria lo de pasar la partida
+      // Aquí puedes manejar otros tipos de mensajes
+      // Por ejemplo, actualizar el estado del juego, etc.
     } catch (error) {
-      console.error('Error al analizar el mensaje JSON:', error);
+      console.error('Error parsing JSON:', error);
     }
   });
 
+  // Manejar cierre de conexión
   wss.on('close', () => {
     console.log('A client disconnected');
-
-    userConnections.forEach((connection, id) => {
-      if (connection === ws) {
-        userConnections.delete(id);
+    // Eliminar al usuario de las conexiones activas
+    userConnections.forEach((conn, userId) => {
+      if (conn === ws) {
+        userConnections.delete(userId);
+        console.log(`Connection with user ${userId} closed.`);
       }
     });
   });
 
-  wss.on('connection', (message: string) => {
-    try {
-      console.log(message);
-      const parsedMessage: WebSocketMessage = JSON.parse(message);
-      const { userId } = parsedMessage;
-      console.log(`User ${userId} connected.`);
-
-      userConnections.set(userId, ws);
-    } catch (error) {
-      console.error('Error al analizar el mensaje JSON:', error);
-    }
+  wss.on('error', error => {
+    console.error('WebSocket error:', error);
   });
 });
 
