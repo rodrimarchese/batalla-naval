@@ -3,6 +3,8 @@ import { User } from '../user/user';
 import { Game, GameStatus } from './game';
 import { convertToUserByData } from '../user/util';
 import { convertGames, convertToGame, mapStatusToDB } from './util';
+import { ApprovedGame, MessageSend, SendMessageType } from "../socket/types";
+import {sendMessageToUser} from '../index'
 
 export async function saveGame(host: User, guest: User, status: GameStatus) {
   try {
@@ -110,14 +112,32 @@ export async function pendingGames(): Promise<Game[]> {
   return convertGames(data);
 }
 
-export async function chooseGame(guest: User, game: Game) {
+export async function chooseGame(possibleGuest: User, game: Game) {
   const { data, error } = await supabase
     .from('game')
     .update({
-      guest_id: guest.id,
+      guest_id: possibleGuest.id,
       status: GameStatus.SettingUp })
     .eq('id', game.id)
-    .select();
+    .select(
+      `
+                *,
+                guest:guest_id (
+                    *
+                ),
+                host:host_id (
+                    *
+                ) 
+            `,
+    );
+
+
+  console.log(data);
+
+  if (error) {
+    throw error;
+  }
+
 
   if (error) {
     throw new Error('Error fetching game from Superbase');
@@ -125,5 +145,32 @@ export async function chooseGame(guest: User, game: Game) {
 
   if (data === null) return null;
   const id = data[0].id;
-  return await gameById(id);
+  const gameResult: Game = await gameById(id);
+
+  if(gameResult.host != null && gameResult.guest != null){
+    //Que le avise a los dos que estan en partida
+    const approvedGame: ApprovedGame = {
+      hostId: gameResult.host.id,
+      hostName: gameResult.host.name ,
+      guestId: gameResult.guest.id ,
+      guestName: gameResult.guest.name ,
+      gameId: gameResult.id
+    }
+
+    const messageHost : MessageSend = {
+      userId: gameResult.host.id,
+      type: SendMessageType.GameSetUp,
+      message: JSON.stringify(approvedGame)
+    }
+    sendMessageToUser(messageHost);
+
+    const messageGuest : MessageSend = {
+      userId: gameResult.guest.id,
+      type: SendMessageType.GameSetUp,
+      message: JSON.stringify(approvedGame)
+    }
+    sendMessageToUser(messageGuest);
+  }
+
+  return gameResult
 }

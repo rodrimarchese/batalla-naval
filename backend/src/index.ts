@@ -15,6 +15,7 @@ import {
 import { createClient } from '@supabase/supabase-js';
 import { userRoutes } from './routes';
 import cors from 'cors';
+import {MessageSend} from './socket/types'
 
 // Cargar variables de entorno
 process.loadEnvFile('.env.local');
@@ -48,18 +49,24 @@ wss.on('connection', (ws: WebSocket) => {
 
   wss.on('message', (message: string) => {
     try {
-      const parsedMessage: WebSocketMessage = JSON.parse(message);
-      const { userId, content } = parsedMessage;
-      console.log(`Received message from user ${userId}: ${content}`);
+      console.log(message);
 
-      const echoMessage: WebSocketMessage = {
-        userId,
-        content: `Echo: ${content}`,
-      };
-      const userConnection = userConnections.get(userId);
-      if (userConnection) {
-        userConnection.send(JSON.stringify(echoMessage));
-      }
+      //ACA IRIA QUE ME PASEN Y YO VER QUE TIPO DE MENSAJE ES Y AHI VER
+
+
+      //const parsedMessage: WebSocketMessage = JSON.parse(message);
+      //const { userId, content } = parsedMessage;
+      //console.log(`Received message from user ${userId}: ${content}`);
+
+      // const echoMessage: WebSocketMessage = {
+      //   userId,
+      //   content: `Echo: ${content}`,
+      // };
+      //const userConnection = userConnections.get(userId);
+      // if (userConnection) {
+      //   userConnection.send(JSON.stringify(echoMessage));
+      // }
+      //aca iria lo de pasar la partida
     } catch (error) {
       console.error('Error al analizar el mensaje JSON:', error);
     }
@@ -77,6 +84,7 @@ wss.on('connection', (ws: WebSocket) => {
 
   wss.on('connection', (message: string) => {
     try {
+      console.log(message);
       const parsedMessage: WebSocketMessage = JSON.parse(message);
       const { userId } = parsedMessage;
       console.log(`User ${userId} connected.`);
@@ -126,6 +134,15 @@ app.get(
 //   res.json({ message: 'Event received', yourData: body }); // Envía una respuesta incluyendo los datos recibidos para confirmar
 // });
 
+export function sendMessageToUser(messageSend: MessageSend) {
+  const userConnection = userConnections.get(messageSend.userId);
+  if (userConnection) {
+    userConnection.send(messageSend.message);
+  } else {
+    console.error(`User ${messageSend.userId} is not connected.`);
+  }
+}
+
 app.use(
   (
     err: ErrorRequestHandler,
@@ -143,3 +160,15 @@ server.listen(port, () => {
     `Batalla naval app listening at http://localhost:${port} ⛴️ 🔫 🪖 🚢`,
   );
 });
+
+//message:
+/*
+{
+"userId": ... ????
+"typeOfMessage": "connection" / "accepted-game" / "board-status"
+"content" {} / "guestId" / objeto
+}
+
+ */
+
+//
