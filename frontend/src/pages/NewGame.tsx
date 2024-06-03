@@ -29,8 +29,8 @@ const NewGame = () => {
   const { user } = useUser();
   const { session } = useSession();
 
-  console.log("User:", user);
   console.log("Session:", session);
+  console.log("User:", user);
 
   const onCreateGame = async () => {
     if (!user) {
@@ -38,10 +38,10 @@ const NewGame = () => {
     }
     try {
       const data = await api.createGame({ hostId: user.id });
-      console.log("Game created:", data);
-      if (data.gameId) {
-        // redirect to /game/:gameId
-        navigate(`/game/${data.gameId}`);
+      const gameId = data.yourData.id;
+
+      if (gameId) {
+        navigate(`/game/${gameId}`);
       }
     } catch (error) {
       console.error("Error creating game:", error);

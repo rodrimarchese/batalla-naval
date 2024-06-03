@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Button, Table } from "antd";
-import { Link, Outlet } from "react-router-dom";
+import { Link, Outlet, useNavigate } from "react-router-dom";
+import { useUser } from "@clerk/clerk-react";
 
 type User = {
   id: string;
@@ -31,10 +32,26 @@ const api = {
     const data = await response.json();
     return data.yourData;
   },
+  joinGame: async ({ userId, gameId }: { gameId: string; userId: string }) => {
+    const response = await fetch(`${VITE_BACKEND_URL}/game/addMe`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        gameId,
+        userId,
+      }),
+    });
+    const data = await response.json();
+    return data;
+  },
 };
 
 const Games: React.FC = () => {
   const [games, setGames] = useState([]);
+  const { user } = useUser();
+  const navigate = useNavigate();
 
   console.log("Games:", games);
 
@@ -53,6 +70,26 @@ const Games: React.FC = () => {
 
     fetchGames();
   }, []);
+
+  const joinGame = async (gameId: string) => {
+    if (!user) {
+      return;
+    }
+    try {
+      const data = await api.joinGame({ userId: user.id, gameId });
+      console.log("Data:", data);
+
+      const newGameId = data.yourData.id;
+
+      if (data.yourData) {
+        console.log("Game joined:", data.yourData);
+        // redirect to /game/:gameId
+        navigate(`/games/${newGameId}`);
+      }
+    } catch (error) {
+      console.error("Error joining game:", error);
+    }
+  };
 
   const columns = [
     // {
@@ -74,6 +111,26 @@ const Games: React.FC = () => {
       title: "Fecha",
       dataIndex: "createdAt",
       key: "createdAt",
+    },
+    {
+      title: "Acciones",
+      key: "actions",
+      render: (
+        record: {
+          id: string;
+          hostName: string;
+          status: string;
+          createdAt: string;
+        }
+      ) => {
+        console.log("Record:", record);
+
+        return (
+          <Button onClick={() => joinGame(record.id)} type="primary">
+            Ver
+          </Button>
+        );
+      },
     },
   ];
 

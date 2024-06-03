@@ -3,6 +3,7 @@ import { User } from '../user/user';
 
 export enum GameStatus {
   Pending = 'pending',
+  SettingUp = 'settingUp',
   Started = 'started',
   Finished = 'finished',
 }
