@@ -7,13 +7,13 @@ import { convertToShipByData, mapShipStatusToDB } from '../ship/util';
 import { ShipPartStatus } from './board';
 import { convertToUserByData } from '../user/util';
 import { convertToGameByData } from '../game/util';
-import { convertToBoard } from './util';
+import { convertToBoard, CastedObject, castBoardItems } from './util';
 
 export async function saveNewBoard(
   game: Game,
   user: User,
   ships: { shipType: string; positions: { x: number; y: number }[] }[],
-) {
+): Promise<CastedObject | null> {
   //TODO: AGREGAR QUE NO SE PISEN EN LAS COORDENADAS
   const saveShipPromises = ships.map(async possibleShip => {
     const ship = await saveShip(possibleShip.shipType);
@@ -22,9 +22,9 @@ export async function saveNewBoard(
     });
     return Promise.all(saveBoardPromises);
   });
-  return Promise.all(saveShipPromises);
+  const boardItems = await Promise.all(saveShipPromises);
+  return castBoardItems(boardItems);
 }
-
 
 
 export async function checkBoardForAGameAndUser(game: Game, user: User) {
@@ -80,8 +80,6 @@ export async function saveBoard(
       console.log(error);
       throw error;
     }
-
-    console.log('Board ', board);
     return board;
   } catch (error) {
     throw new Error('Error inserting game in database');

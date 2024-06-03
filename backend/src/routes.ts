@@ -8,6 +8,8 @@ import {
   getAllPendingGames,
   getGame,
 } from './game/gameController';
+
+import {sendMessages} from './message/controller'
 import { addBoard } from './board/boardController';
 
 export const userRoutes = Router();
@@ -21,6 +23,8 @@ userRoutes.post('/game', createGameWithUsers);
 userRoutes.post('/game/new', createGameOpen);
 userRoutes.get('/game/pending', getAllPendingGames);
 userRoutes.get('/game/:id', getGame);
+
+userRoutes.get('/sendMessages', sendMessages);
 
 userRoutes.put('/game/addMe', addMeToGame);
 

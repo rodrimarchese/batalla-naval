@@ -133,10 +133,6 @@ export async function chooseGame(possibleGuest: User, game: Game) {
 
 
   if (error) {
-    throw error;
-  }
-
-  if (error) {
     throw new Error('Error fetching game from Superbase');
   }
 
@@ -146,6 +142,53 @@ export async function chooseGame(possibleGuest: User, game: Game) {
 
   if(gameResult.host != null && gameResult.guest != null){
     //Que le avise a los dos que estan en partida
+    const approvedGame: ApprovedGame = {
+      hostId: gameResult.host.id,
+      hostName: gameResult.host.name ,
+      guestId: gameResult.guest.id ,
+      guestName: gameResult.guest.name ,
+      gameId: gameResult.id
+    }
+
+    const messageHost : MessageSend = {
+      userId: gameResult.host.id,
+      type: SendMessageType.GameSetUp,
+      message: JSON.stringify(approvedGame)
+    }
+    await sendMessageToUser(messageHost);
+
+    const messageGuest : MessageSend = {
+      userId: gameResult.guest.id,
+      type: SendMessageType.GameSetUp,
+      message: JSON.stringify(approvedGame)
+    }
+    await sendMessageToUser(messageGuest);
+  }
+
+  return gameResult
+}
+
+export async function startGame(game: Game) {
+  const { data, error } = await supabase
+    .from('game')
+    .update({
+      status: GameStatus.Started })
+    .eq('id', game.id)
+    .select('id');
+
+  if (error) {
+    throw new Error('Error fetching game from Superbase');
+  }
+
+  if (data === null) return null;
+  const id = data[0].id;
+  const gameResult: Game = await gameById(id);
+
+
+  if(gameResult.host != null && gameResult.guest != null){
+    //Que le avise a los dos que empezó la partida
+
+
     const approvedGame: ApprovedGame = {
       hostId: gameResult.host.id,
       hostName: gameResult.host.name ,
@@ -170,4 +213,5 @@ export async function chooseGame(possibleGuest: User, game: Game) {
   }
 
   return gameResult
+
 }

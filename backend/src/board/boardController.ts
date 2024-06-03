@@ -33,20 +33,19 @@ export async function addBoard(req: Request, res: Response) {
     let userToCheck : User | null;
     //ACA chequear que el otro haya guardado el estado y en ese caso empezar el juego
     if(game.host?.id == user.id)
-       userToCheck = user;
+       userToCheck = game.guest
     else
-      userToCheck = game.guest
+      userToCheck = game.host
 
     if(userToCheck){
       const checkReadyGameStatus = await checkBoardForAGameAndUser(game, userToCheck)
+
       if(checkReadyGameStatus){
+        console.log('entre');
+
         //MANDAR UN NUEVO ESTADO DEL JUEGO Y CAMBIARLO Y MANDARLO A CADA USUARIO.
       }
     }
-
-
-
-
     return res.json({ message: 'Event received', yourData: boardDefined });
   } catch (error: any) {
     return res.status(500).json({ message: 'Error creating board' });

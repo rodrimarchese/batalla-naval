@@ -7,6 +7,7 @@ import express, {
 } from 'express';
 import { Server as HTTPServer } from 'http';
 import { Server as WebSocketServer } from 'ws';
+import {MessageStatus} from './message/util';
 import {
   ClerkExpressRequireAuth,
   RequireAuthProp,
@@ -15,7 +16,7 @@ import {
 import { createClient } from '@supabase/supabase-js';
 import { userRoutes } from './routes';
 import cors from 'cors';
-import { MessageSend } from './socket/types';
+import { MessageSend, SendMessageType } from './socket/types';
 
 // Cargar variables de entorno
 process.loadEnvFile('.env.local');
@@ -48,7 +49,7 @@ wss.on('connection', (ws: WebSocket) => {
   console.log('A client connected via WebSocket.');
 
   // Manejar mensajes entrantes
-  wss.on('message', (message: string) => {
+  wss.on('message', async (message: string) => {
     console.log('Received:', message);
     try {
       const data = JSON.parse(message);
@@ -58,6 +59,8 @@ wss.on('connection', (ws: WebSocket) => {
         console.log(`User ${data.userId} connected.`);
         // Guardar la conexión con el userId específico
         userConnections.set(data.userId, ws);
+
+        await sendAllMessagesPending(data.userId);
       }
 
       // Aquí puedes manejar otros tipos de mensajes
@@ -122,13 +125,90 @@ app.get(
 //   res.json({ message: 'Event received', yourData: body }); // Envía una respuesta incluyendo los datos recibidos para confirmar
 // });
 
-export function sendMessageToUser(messageSend: MessageSend) {
+export async function sendMessageToUser(messageSend: MessageSend) {
+  const userConnection = userConnections.get(messageSend.userId);
+  if (userConnection) {
+    await saveMessage(messageSend, MessageStatus.send)
+    userConnection.send(messageSend.message);
+  } else {
+    await saveMessage(messageSend, MessageStatus.pending)
+    console.error(`User ${messageSend.userId} is not connected. Message has been saved`);
+  }
+}
+
+export async function sendMessageToUserWithoutSaving(messageSend: MessageSend) {
   const userConnection = userConnections.get(messageSend.userId);
   if (userConnection) {
     userConnection.send(messageSend.message);
   } else {
-    console.error(`User ${messageSend.userId} is not connected.`);
+    console.error(`User ${messageSend.userId} is not connected. Message has been saved`);
   }
+}
+
+async function saveMessage(messageSend: MessageSend, status: MessageStatus){
+  try {
+    const message = {
+      user_id: messageSend.userId,
+      type_of_message: messageSend.type,
+      message: messageSend.message,
+      status: status
+    };
+
+    const { data: messageQuery, error } = await supabase
+      .from('messages')
+      .insert(message)
+      .select('*');
+
+    console.log('message ' , messageQuery)
+  }catch (error) {
+    throw new Error('Error inserting message in database');
+  }
+}
+
+export async function sendAllMessagesPending(userId: string){
+  const { data: pendingMessages, error: fetchError } = await supabase
+    .from('messages')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('status', 'pending');
+
+  console.log('Pending messages ', pendingMessages);
+  if (fetchError) {
+    throw new Error('Error fetching pending messages from database');
+  }
+
+  const messageSends: MessageSend[] = pendingMessages.map(message => ({
+    userId: message.user_id,
+    type: message.type_of_message as SendMessageType,
+    message: message.message
+  }));
+
+  for (const messageSend of messageSends) {
+    await sendMessageToUserWithoutSaving(messageSend);
+  }
+
+  if (pendingMessages) {
+    const updatePromises = pendingMessages.map(async (message) => {
+      console.log('MESSAGE', message);
+      const { id } = message;
+      console.log(id);
+      const { error: updateError } = await supabase
+        .from('messages')
+        .update({ status: 'send' })
+        .eq('id', id);
+
+      if (updateError) {
+        throw new Error(`Error updating message ${id}: ${updateError.message}`);
+      }
+    });
+
+    await Promise.all(updatePromises);
+    console.log('All pending messages have been updated to send status');
+  } else {
+    console.log('No pending messages found');
+  }
+
+  return messageSends;
 }
 
 app.use(

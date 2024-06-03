@@ -90,3 +90,58 @@ export function generateUserShipInfo(boards: Board[]): UserShipInfo[] {
 
   return userShipInfoArray;
 }
+
+export type CastedObject = {
+  gameId: string;
+  userId: string;
+  ships: {
+    shipType: string;
+    positions: {
+      x: number;
+      y: number;
+      status: string;
+    }[];
+  }[];
+};
+
+export function castBoardItems(boardItems: (Board | null)[][]): CastedObject | null {
+  if (!boardItems || boardItems.length === 0 || !boardItems[0] || boardItems[0].length === 0) {
+    return null;
+  }
+
+  const firstItem = boardItems[0][0];
+
+  if (firstItem?.game && firstItem?.user) {
+    const gameId = firstItem.game.id;
+    const userId = firstItem.user.id;
+
+    const shipMap: { [key: string]: { shipType: string; positions: { x: number; y: number; status: string }[] } } = {};
+
+    boardItems.flat().forEach(item => {
+      if (item) {
+        const shipType = item.ship?.shipType || "default";
+        const position = {
+          x: item.xCoordinate,
+          y: item.yCoordinate,
+          status: item.shipPartStatus,
+        };
+
+        if (!shipMap[shipType]) {
+          shipMap[shipType] = { shipType, positions: [] };
+        }
+        shipMap[shipType].positions.push(position);
+      }
+    });
+
+    const ships = Object.values(shipMap);
+
+    return {
+      gameId,
+      userId,
+      ships,
+    };
+  }
+
+  return null;
+}
+
