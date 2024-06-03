@@ -1,5 +1,6 @@
 export enum SendMessageType {
-  GameSetUp = 'gameSetUp',
+  GameSetUp = 'settingUp',
+  OnConnection = 'onConnection'
 }
 
 

@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
 import { gameById } from '../game/gameService';
 import { userWithId } from '../user/userService';
-import { saveNewBoard } from './boardService';
+import { checkBoardForAGameAndUser, saveNewBoard } from "./boardService";
 
+import {User} from '../user/user'
 /*
 Este metodo crea guarda de un board el espacio de las piezas de un ship
 
@@ -28,6 +29,24 @@ export async function addBoard(req: Request, res: Response) {
     const game = await gameById(body.gameId);
     const user = await userWithId(body.userId);
     const boardDefined = await saveNewBoard(game, user, body.ships);
+
+    let userToCheck : User | null;
+    //ACA chequear que el otro haya guardado el estado y en ese caso empezar el juego
+    if(game.host?.id == user.id)
+       userToCheck = user;
+    else
+      userToCheck = game.guest
+
+    if(userToCheck){
+      const checkReadyGameStatus = await checkBoardForAGameAndUser(game, userToCheck)
+      if(checkReadyGameStatus){
+        //MANDAR UN NUEVO ESTADO DEL JUEGO Y CAMBIARLO Y MANDARLO A CADA USUARIO.
+      }
+    }
+
+
+
+
     return res.json({ message: 'Event received', yourData: boardDefined });
   } catch (error: any) {
     return res.status(500).json({ message: 'Error creating board' });

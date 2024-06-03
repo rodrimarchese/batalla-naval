@@ -14,6 +14,7 @@ export async function saveNewBoard(
   user: User,
   ships: { shipType: string; positions: { x: number; y: number }[] }[],
 ) {
+  //TODO: AGREGAR QUE NO SE PISEN EN LAS COORDENADAS
   const saveShipPromises = ships.map(async possibleShip => {
     const ship = await saveShip(possibleShip.shipType);
     const saveBoardPromises = possibleShip.positions.map(async position => {
@@ -22,6 +23,26 @@ export async function saveNewBoard(
     return Promise.all(saveBoardPromises);
   });
   return Promise.all(saveShipPromises);
+}
+
+
+
+export async function checkBoardForAGameAndUser(game: Game, user: User) {
+  const { data: existingRecord, error } = await supabase
+    .from('board')
+    .select('*')
+    .eq('game_id', game.id)
+    .eq('user_id', user.id)
+    .limit(1);
+
+  if (error) {
+    console.error('Error fetching record:', error);
+    throw error;
+  } else if (existingRecord.length > 0) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
 export async function saveBoard(

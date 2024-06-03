@@ -54,7 +54,7 @@ wss.on('connection', (ws: WebSocket) => {
       const data = JSON.parse(message);
       console.log(`Received message: ${message}`);
 
-      if (data.userId) {
+      if (data.type == 'onConnection') {
         console.log(`User ${data.userId} connected.`);
         // Guardar la conexión con el userId específico
         userConnections.set(data.userId, ws);

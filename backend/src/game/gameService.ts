@@ -132,12 +132,9 @@ export async function chooseGame(possibleGuest: User, game: Game) {
     );
 
 
-  console.log(data);
-
   if (error) {
     throw error;
   }
-
 
   if (error) {
     throw new Error('Error fetching game from Superbase');
