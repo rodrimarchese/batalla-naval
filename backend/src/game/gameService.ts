@@ -113,7 +113,9 @@ export async function pendingGames(): Promise<Game[]> {
 export async function chooseGame(guest: User, game: Game) {
   const { data, error } = await supabase
     .from('game')
-    .update({ guest_id: guest.id })
+    .update({
+      guest_id: guest.id,
+      status: GameStatus.SettingUp })
     .eq('id', game.id)
     .select();
 

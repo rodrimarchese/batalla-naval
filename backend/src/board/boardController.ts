@@ -14,7 +14,7 @@ ejemplo en postman:
     "ships": [
         {
             "shipType": "A",
-            "positions": [{"x": 1, "y":2}, {"x": 2, "y":2}]
+            "positions": [{"x": 1, "y":2, }, {"x": 2, "y":2}]
         }
 
     ]

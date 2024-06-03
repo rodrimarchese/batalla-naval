@@ -106,3 +106,5 @@ export async function boardById(id: string) {
     data.y_coordinate,
   );
 }
+
+export async function getBoardForGameIdAndUserId(game: Game, user: User) {}
