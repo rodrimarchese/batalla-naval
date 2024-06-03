@@ -7,7 +7,7 @@ import express, {
 } from 'express';
 import { Server as HTTPServer } from 'http';
 import { Server as WebSocketServer } from 'ws';
-import {MessageStatus} from './message/util';
+import { MessageStatus } from './message/util';
 import {
   ClerkExpressRequireAuth,
   RequireAuthProp,
@@ -17,6 +17,7 @@ import { createClient } from '@supabase/supabase-js';
 import { userRoutes } from './routes';
 import cors from 'cors';
 import { MessageSend, SendMessageType } from './socket/types';
+import { WebSocket } from 'ws';
 
 // Cargar variables de entorno
 process.loadEnvFile('.env.local');
@@ -49,7 +50,7 @@ wss.on('connection', (ws: WebSocket) => {
   console.log('A client connected via WebSocket.');
 
   // Manejar mensajes entrantes
-  wss.on('message', async (message: string) => {
+  ws.on('message', async (message: string) => {
     console.log('Received:', message);
     try {
       const data = JSON.parse(message);
@@ -71,7 +72,7 @@ wss.on('connection', (ws: WebSocket) => {
   });
 
   // Manejar cierre de conexión
-  wss.on('close', () => {
+  ws.on('close', () => {
     console.log('A client disconnected');
     // Eliminar al usuario de las conexiones activas
     userConnections.forEach((conn, userId) => {
@@ -82,7 +83,7 @@ wss.on('connection', (ws: WebSocket) => {
     });
   });
 
-  wss.on('error', error => {
+  ws.on('error', error => {
     console.error('WebSocket error:', error);
   });
 });
@@ -128,11 +129,13 @@ app.get(
 export async function sendMessageToUser(messageSend: MessageSend) {
   const userConnection = userConnections.get(messageSend.userId);
   if (userConnection) {
-    await saveMessage(messageSend, MessageStatus.send)
+    await saveMessage(messageSend, MessageStatus.send);
     userConnection.send(messageSend.message);
   } else {
-    await saveMessage(messageSend, MessageStatus.pending)
-    console.error(`User ${messageSend.userId} is not connected. Message has been saved`);
+    await saveMessage(messageSend, MessageStatus.pending);
+    console.error(
+      `User ${messageSend.userId} is not connected. Message has been saved`,
+    );
   }
 }
 
@@ -141,17 +144,19 @@ export async function sendMessageToUserWithoutSaving(messageSend: MessageSend) {
   if (userConnection) {
     userConnection.send(messageSend.message);
   } else {
-    console.error(`User ${messageSend.userId} is not connected. Message has been saved`);
+    console.error(
+      `User ${messageSend.userId} is not connected. Message has been saved`,
+    );
   }
 }
 
-async function saveMessage(messageSend: MessageSend, status: MessageStatus){
+async function saveMessage(messageSend: MessageSend, status: MessageStatus) {
   try {
     const message = {
       user_id: messageSend.userId,
       type_of_message: messageSend.type,
       message: messageSend.message,
-      status: status
+      status: status,
     };
 
     const { data: messageQuery, error } = await supabase
@@ -159,13 +164,13 @@ async function saveMessage(messageSend: MessageSend, status: MessageStatus){
       .insert(message)
       .select('*');
 
-    console.log('message ' , messageQuery)
-  }catch (error) {
+    console.log('message ', messageQuery);
+  } catch (error) {
     throw new Error('Error inserting message in database');
   }
 }
 
-export async function sendAllMessagesPending(userId: string){
+export async function sendAllMessagesPending(userId: string) {
   const { data: pendingMessages, error: fetchError } = await supabase
     .from('messages')
     .select('*')
@@ -180,7 +185,7 @@ export async function sendAllMessagesPending(userId: string){
   const messageSends: MessageSend[] = pendingMessages.map(message => ({
     userId: message.user_id,
     type: message.type_of_message as SendMessageType,
-    message: message.message
+    message: message.message,
   }));
 
   for (const messageSend of messageSends) {
@@ -188,7 +193,7 @@ export async function sendAllMessagesPending(userId: string){
   }
 
   if (pendingMessages) {
-    const updatePromises = pendingMessages.map(async (message) => {
+    const updatePromises = pendingMessages.map(async message => {
       console.log('MESSAGE', message);
       const { id } = message;
       console.log(id);
