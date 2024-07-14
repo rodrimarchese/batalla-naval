@@ -96,6 +96,7 @@ export type CastedObject = {
   userId: string;
   ships: {
     shipType: string;
+    shipId: string;
     positions: {
       x: number;
       y: number;
@@ -105,6 +106,7 @@ export type CastedObject = {
 };
 
 export function castBoardItems(boardItems: (Board | null)[][]): CastedObject | null {
+
   if (!boardItems || boardItems.length === 0 || !boardItems[0] || boardItems[0].length === 0) {
     return null;
   }
@@ -115,24 +117,26 @@ export function castBoardItems(boardItems: (Board | null)[][]): CastedObject | n
     const gameId = firstItem.game.id;
     const userId = firstItem.user.id;
 
-    const shipMap: { [key: string]: { shipType: string; positions: { x: number; y: number; status: string }[] } } = {};
+    // Utiliza un mapa para almacenar información de los barcos, clave por ship_id
+    const shipMap: { [key: string]: { shipId: string; shipType: string; positions: { x: number; y: number; status: string }[] } } = {};
 
     boardItems.flat().forEach(item => {
-      if (item) {
-        const shipType = item.ship?.shipType || "default";
+      if (item && item.ship) {
+        const shipId = item.ship.id;
+        const shipType = item.ship?.shipType || "default"
         const position = {
           x: item.xCoordinate,
           y: item.yCoordinate,
           status: item.shipPartStatus,
         };
-
-        if (!shipMap[shipType]) {
-          shipMap[shipType] = { shipType, positions: [] };
+        if (!shipMap[shipId]) {
+          shipMap[shipId] = { shipId, shipType ,positions: [] };
         }
-        shipMap[shipType].positions.push(position);
+        shipMap[shipId].positions.push(position);
       }
     });
 
+    // Extrae los valores del mapa para obtener la lista de barcos
     const ships = Object.values(shipMap);
 
     return {
@@ -144,4 +148,5 @@ export function castBoardItems(boardItems: (Board | null)[][]): CastedObject | n
 
   return null;
 }
+
 

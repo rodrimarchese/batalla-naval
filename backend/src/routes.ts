@@ -11,7 +11,7 @@ import {
 
 import {sendMessages} from './message/controller'
 import { addBoard } from './board/boardController';
-
+import {getMovementsForGame} from './movements/movementController'
 export const userRoutes = Router();
 
 userRoutes.post('/createUser', createUser);
@@ -29,3 +29,5 @@ userRoutes.get('/sendMessages', sendMessages);
 userRoutes.put('/game/addMe', addMeToGame);
 
 userRoutes.post('/board', addBoard);
+
+userRoutes.get('/movements', getMovementsForGame);

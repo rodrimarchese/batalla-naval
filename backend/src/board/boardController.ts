@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
 import { gameById } from '../game/gameService';
 import { userWithId } from '../user/userService';
-import { checkBoardForAGameAndUser, saveNewBoard } from "./boardService";
+import { checkBoardForAGameAndUser, getBoardsForGameIdAndUserId, saveNewBoard } from "./boardService";
+import {  startGameD } from "../game/gameService";
 
 import {User} from '../user/user'
 /*
@@ -37,15 +38,24 @@ export async function addBoard(req: Request, res: Response) {
     else
       userToCheck = game.host
 
-    if(userToCheck){
-      const checkReadyGameStatus = await checkBoardForAGameAndUser(game, userToCheck)
+    if(game.host !== null && game.host?.id !== null && game.guest != null &&game.guest?.id !== null){
+      const boardForHost = await getBoardsForGameIdAndUserId(game, game.host);
+      const boardForGuest = await getBoardsForGameIdAndUserId(game, game.guest);
 
-      if(checkReadyGameStatus){
-        console.log('entre');
+      if(userToCheck){
+        const checkReadyGameStatus = await checkBoardForAGameAndUser(game, userToCheck)
 
-        //MANDAR UN NUEVO ESTADO DEL JUEGO Y CAMBIARLO Y MANDARLO A CADA USUARIO.
+        if(checkReadyGameStatus){
+          if(boardForGuest !== null && boardForHost !== null){
+            console.log('entre');
+            if(boardForHost !== null && boardForGuest !== null){
+              startGameD(game, boardForHost, boardForGuest);
+            }
+          }
+        }
       }
     }
+    
     return res.json({ message: 'Event received', yourData: boardDefined });
   } catch (error: any) {
     return res.status(500).json({ message: 'Error creating board' });

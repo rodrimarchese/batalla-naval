@@ -18,7 +18,8 @@ import { userRoutes } from './routes';
 import cors from 'cors';
 import { MessageSend, SendMessageType } from './socket/types';
 import { WebSocket } from 'ws';
-
+import { addBoard } from "./board/boardService";
+import { createMovement} from "./movements/movementService"
 // Cargar variables de entorno
 process.loadEnvFile('.env.local');
 
@@ -54,7 +55,20 @@ wss.on('connection', (ws: WebSocket) => {
     console.log('Received:', message);
     try {
       const data = JSON.parse(message);
+      if (isValidMessageSend(data)) {
+        console.log('Mensaje válido:', data);
+        manageMessage(data);
+      } else {
+        const messageSend : MessageSend = {
+          userId : data.userId,
+          type: SendMessageType.ErrorMessage,
+          message: 'Error persing'
+        }
+        sendMessageToUser(messageSend);
+        console.error('El mensaje parseado no es válido');
+      }
       console.log(`Received message: ${message}`);
+    
 
       if (data.type == 'onConnection') {
         console.log(`User ${data.userId} connected.`);
@@ -107,24 +121,6 @@ app.get(
   },
 );
 
-// add whebhook route /data
-// app.post('/createUser', async (req, res) => {
-//   const body = req.body; // Ahora `body` debería tener la estructura JSON que fue parseada por express.json()
-//   console.log('Event received:', JSON.stringify(body, null, 2)); // Mejora la impresión del JSON para una mejor legibilidad
-
-//   const userData = body.data;
-
-//   // Supabase
-//   const { data, error } = await supabase.from('users').insert([
-//     {
-//       id: userData.id,
-//       name: userData.first_name + ' ' + userData.last_name,
-//       email: userData.email_addresses[0].email_address,
-//     },
-//   ]);
-
-//   res.json({ message: 'Event received', yourData: body }); // Envía una respuesta incluyendo los datos recibidos para confirmar
-// });
 
 export async function sendMessageToUser(messageSend: MessageSend) {
   const userConnection = userConnections.get(messageSend.userId);
@@ -168,6 +164,16 @@ async function saveMessage(messageSend: MessageSend, status: MessageStatus) {
   } catch (error) {
     throw new Error('Error inserting message in database');
   }
+}
+
+async function manageMessage(data: MessageSend) {
+  if(data.type == SendMessageType.GameSetUp) {
+    await addBoard(data.message, data.userId);
+  }
+  if(data.type == SendMessageType.Shot){
+    await createMovement(data.userId, data.message )
+  }
+
 }
 
 export async function sendAllMessagesPending(userId: string) {
@@ -233,6 +239,13 @@ server.listen(port, () => {
     `Batalla naval app listening at http://localhost:${port} ⛴️ 🔫 🪖 🚢`,
   );
 });
+
+function isValidMessageSend(obj: any): obj is MessageSend {
+  return obj &&
+    typeof obj.userId === 'string' &&
+    typeof obj.type === 'string' &&
+    typeof obj.message === 'string';
+}
 
 //message:
 /*
