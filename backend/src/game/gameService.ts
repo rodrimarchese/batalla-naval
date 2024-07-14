@@ -3,8 +3,8 @@ import { User } from '../user/user';
 import { Game, GameStatus } from './game';
 import { convertToUserByData } from '../user/util';
 import { convertGames, convertToGame, mapStatusToDB } from './util';
-import { ApprovedGame, MessageSend, SendMessageType } from "../socket/types";
-import {sendMessageToUser} from '../index'
+import { ApprovedGame, MessageSend, SendMessageType } from '../socket/types';
+import { sendMessageToUser } from '../index';
 
 export async function saveGame(host: User, guest: User, status: GameStatus) {
   try {
@@ -117,7 +117,8 @@ export async function chooseGame(possibleGuest: User, game: Game) {
     .from('game')
     .update({
       guest_id: possibleGuest.id,
-      status: GameStatus.SettingUp })
+      status: GameStatus.SettingUp,
+    })
     .eq('id', game.id)
     .select(
       `
@@ -131,7 +132,6 @@ export async function chooseGame(possibleGuest: User, game: Game) {
             `,
     );
 
-
   if (error) {
     throw new Error('Error fetching game from Superbase');
   }
@@ -140,39 +140,41 @@ export async function chooseGame(possibleGuest: User, game: Game) {
   const id = data[0].id;
   const gameResult: Game = await gameById(id);
 
-  if(gameResult.host != null && gameResult.guest != null){
+  if (gameResult.host != null && gameResult.guest != null) {
     //Que le avise a los dos que estan en partida
     const approvedGame: ApprovedGame = {
       hostId: gameResult.host.id,
-      hostName: gameResult.host.name ,
-      guestId: gameResult.guest.id ,
-      guestName: gameResult.guest.name ,
-      gameId: gameResult.id
-    }
+      hostName: gameResult.host.name,
+      guestId: gameResult.guest.id,
+      guestName: gameResult.guest.name,
+      gameId: gameResult.id,
+      status: GameStatus.SettingUp,
+    };
 
-    const messageHost : MessageSend = {
+    const messageHost: MessageSend = {
       userId: gameResult.host.id,
       type: SendMessageType.GameSetUp,
-      message: JSON.stringify(approvedGame)
-    }
+      message: JSON.stringify(approvedGame),
+    };
     await sendMessageToUser(messageHost);
 
-    const messageGuest : MessageSend = {
+    const messageGuest: MessageSend = {
       userId: gameResult.guest.id,
       type: SendMessageType.GameSetUp,
-      message: JSON.stringify(approvedGame)
-    }
+      message: JSON.stringify(approvedGame),
+    };
     await sendMessageToUser(messageGuest);
   }
 
-  return gameResult
+  return gameResult;
 }
 
 export async function startGame(game: Game) {
   const { data, error } = await supabase
     .from('game')
     .update({
-      status: GameStatus.Started })
+      status: GameStatus.Started,
+    })
     .eq('id', game.id)
     .select('id');
 
@@ -184,34 +186,32 @@ export async function startGame(game: Game) {
   const id = data[0].id;
   const gameResult: Game = await gameById(id);
 
-
-  if(gameResult.host != null && gameResult.guest != null){
+  if (gameResult.host != null && gameResult.guest != null) {
     //Que le avise a los dos que empezó la partida
-
 
     const approvedGame: ApprovedGame = {
       hostId: gameResult.host.id,
-      hostName: gameResult.host.name ,
-      guestId: gameResult.guest.id ,
-      guestName: gameResult.guest.name ,
-      gameId: gameResult.id
-    }
+      hostName: gameResult.host.name,
+      guestId: gameResult.guest.id,
+      guestName: gameResult.guest.name,
+      gameId: gameResult.id,
+      status: GameStatus.Started,
+    };
 
-    const messageHost : MessageSend = {
+    const messageHost: MessageSend = {
       userId: gameResult.host.id,
       type: SendMessageType.GameSetUp,
-      message: JSON.stringify(approvedGame)
-    }
+      message: JSON.stringify(approvedGame),
+    };
     sendMessageToUser(messageHost);
 
-    const messageGuest : MessageSend = {
+    const messageGuest: MessageSend = {
       userId: gameResult.guest.id,
       type: SendMessageType.GameSetUp,
-      message: JSON.stringify(approvedGame)
-    }
+      message: JSON.stringify(approvedGame),
+    };
     sendMessageToUser(messageGuest);
   }
 
-  return gameResult
-
+  return gameResult;
 }
