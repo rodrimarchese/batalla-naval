@@ -32,9 +32,14 @@ const DraggableBoat = ({
   const handleStop = (e, data) => {
     const newX = Math.round(data.lastX / cellSize) * cellSize;
     const newY = Math.round(data.lastY / cellSize) * cellSize;
-    setPosition({ x: newX, y: newY });
-    console.log("New position:", newX, newY);
-    onPositionChange(id, newX, newY);
+
+    if (!onPositionChange(id, newX, newY)) {
+      // Si el movimiento no es válido, reinicia la posición al valor inicial
+      setPosition({ x: initialX, y: initialY });
+    } else {
+      // Si es válido, actualiza con la nueva posición
+      setPosition({ x: newX, y: newY });
+    }
   };
 
   return (

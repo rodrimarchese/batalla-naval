@@ -66,26 +66,45 @@ const SetupGame = ({ gameData, sendMessage }) => {
     },
   ]);
 
-  const updateShipPosition = (id, newX, newY) => {
-    setShips((prevShips) =>
-      prevShips.map((ship) =>
-        ship.id === id
-          ? {
-              ...ship,
-              positions: ship.positions.map((pos, index) => {
-                // Calcula las nuevas posiciones basándose en la orientación del barco
-                if (ship.positions[0].x === ship.positions[1].x) {
-                  // Orientación vertical
-                  return { x: newX / cellSize, y: newY / cellSize + index };
-                } else {
-                  // Orientación horizontal
-                  return { x: newX / cellSize + index, y: newY / cellSize };
-                }
-              }),
-            }
-          : ship
+  // Función para comprobar si las nuevas posiciones son válidas
+  const checkPositionValid = (newPositions, otherShips) => {
+    const occupied = new Set(
+      otherShips.flatMap((ship) =>
+        ship.positions.map((pos) => `${pos.x},${pos.y}`)
       )
     );
+    return newPositions.every((pos) => !occupied.has(`${pos.x},${pos.y}`));
+  };
+
+  const updateShipPosition = (id, newX, newY) => {
+    let validMove = false;
+    setShips((prevShips) => {
+      const movingShip = prevShips.find((ship) => ship.id === id);
+      const otherShips = prevShips.filter((ship) => ship.id !== id);
+      const baseX = newX / cellSize;
+      const baseY = newY / cellSize;
+
+      if (!movingShip) return prevShips;
+
+      const newPositions = movingShip.positions.map((pos, index) => {
+        if (movingShip.positions[0].x === movingShip.positions[1].x) {
+          // Vertical orientation
+          return { x: baseX, y: baseY + index };
+        } else {
+          // Horizontal orientation
+          return { x: baseX + index, y: baseY };
+        }
+      });
+
+      if (checkPositionValid(newPositions, otherShips)) {
+        validMove = true;
+        return prevShips.map((ship) =>
+          ship.id === id ? { ...ship, positions: newPositions } : ship
+        );
+      }
+      return prevShips; // Si no es válido, no cambia los barcos
+    });
+    return validMove;
   };
 
   const logPositions = () => {
