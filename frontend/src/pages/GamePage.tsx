@@ -1,30 +1,49 @@
-import React, { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { Spinner } from "../components/Spinner";
+import React, { useEffect, useState, useRef, useCallback } from "react";
+import { useParams } from "react-router-dom";
+import GameLobby from "./GameLobby";
+import SetupGame from "./SetupGame";
+import ActiveGame from "./ActiveGame";
+import { WebSocketClient } from "../components/WebSocketClient";
+import { useUser } from "@clerk/clerk-react";
+
+export enum GameStatus {
+  Pending = "pending",
+  SettingUp = "settingUp",
+  Started = "started",
+  Finished = "finished",
+}
 
 const VITE_BACKEND_URL = import.meta.env.VITE_BACKEND_URL as string;
-
-interface UserData {
-  id: string;
-  name: string;
-  email: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface GameData {
-  id: string;
-  host: UserData;
-  guest?: UserData | null;
-  status: string;
-  createdAt: string;
-}
+const WS_BACKEND_URL = import.meta.env.WS_BACKEND_URL as string;
 
 const GamePage = () => {
   const { gameId } = useParams<{ gameId: string }>();
-  const [gameData, setGameData] = useState<GameData | null>(null);
+  const { user } = useUser();
+  const userId = user?.id;
+  const [gameData, setGameData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const sendMessageRef = useRef<(message: string) => void>(() => {});
+
+  console.log("game data:", gameData);
+
+  const handleWebSocketMessage = useCallback((data: any) => {
+    const message = JSON.parse(data);
+    console.log("Received message ACA:", message);
+    if (message.status) {
+      setGameData((prevData) => ({
+        ...prevData,
+        status: message.status,
+      }));
+    }
+  }, []);
+
+  // Use the sendMessage function from the ref
+  const sendMessage = (message: any) => {
+    if (sendMessageRef.current) {
+      sendMessageRef.current(message);
+    }
+  };
 
   useEffect(() => {
     const fetchGameData = async () => {
@@ -34,67 +53,36 @@ const GamePage = () => {
         const result = await response.json();
         setGameData(result.yourData);
       } catch (err: any) {
+        console.error("Error fetching game data:", err);
         setError(err.message);
       } finally {
         setLoading(false);
       }
     };
 
-    if (gameId) {
-      fetchGameData();
-    }
+    fetchGameData();
   }, [gameId]);
 
-  console.log("gameData:", gameData);
-
-  if (loading)
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="loader"></div>
-      </div>
-    );
-
-  if (error)
-    return <div className="text-red-500 text-center mt-4">{error}</div>;
-  if (!gameData)
-    return (
-      <div className="text-gray-600 text-center mt-4">No game data found.</div>
-    );
+  if (!gameData || !userId) return <div>Loading...</div>;
 
   return (
-    <div className="max-w-xl mx-auto p-4">
-      <div className="bg-white shadow-md rounded-lg p-6">
-        <h1 className="text-lg font-bold mb-4">Game ID: {gameData.id}</h1>
-        <p>
-          <strong>Host:</strong> {gameData.host.name}
-        </p>
-        <p>
-          <strong>Email:</strong> {gameData.host.email}
-        </p>
-        <p>
-          <strong>Game Created At:</strong>{" "}
-          {new Date(gameData.createdAt).toLocaleString()}
-        </p>
-        {gameData.guest ? (
-          <p>
-            <strong>Guest:</strong> {gameData.guest.name} has joined the game.
-          </p>
-        ) : (
-          <p className="text-yellow-500">Waiting for a guest to join...</p>
-        )}
-        <p>
-          <strong>Status:</strong> {gameData.status}
-        </p>
-        <Link to="/games" className="text-blue-500 hover:underline mt-4 block">
-          Back to games list
-        </Link>
-      </div>
-      {gameData.status === "pending" && (
-        <div className="mt-8">
-          <Spinner />
-        </div>
+    <>
+      <WebSocketClient
+        url={`${WS_BACKEND_URL}`}
+        onMessage={handleWebSocketMessage}
+        userId={userId}
+        sendMessageRef={sendMessageRef}
+      />
+      {gameData.status === GameStatus.Pending && (
+        <GameLobby gameData={gameData} />
       )}
-    </div>
+      {gameData.status === GameStatus.SettingUp && (
+        <SetupGame gameData={gameData} sendMessage={sendMessage} />
+      )}
+      {gameData.status === GameStatus.Started && (
+        <ActiveGame gameData={gameData} />
+      )}
+    </>
   );
 };
 

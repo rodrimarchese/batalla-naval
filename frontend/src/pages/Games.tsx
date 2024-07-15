@@ -71,20 +71,25 @@ const Games: React.FC = () => {
     fetchGames();
   }, []);
 
-  const joinGame = async (gameId: string) => {
+  const joinGame = async (gameIdToSend: string) => {
     if (!user) {
       return;
     }
     try {
-      const data = await api.joinGame({ userId: user.id, gameId });
+      const data = await api.joinGame({
+        userId: user.id,
+        gameId: gameIdToSend,
+      });
       console.log("Data:", data);
 
-      const newGameId = data.yourData.id;
+      const gameId = data.yourData.id;
 
-      if (data.yourData) {
-        console.log("Game joined:", data.yourData);
+      if (gameId) {
+        console.log("Game joined:", gameId);
         // redirect to /game/:gameId
-        navigate(`/games/${newGameId}`);
+        // ACA no quiero redirigir. quiero hacer que escuche el websocket.
+        // una vez que se conecta, directo lo redirijo a /game/:gameId con el juego en marcha
+        navigate(`/game/${gameId}`);
       }
     } catch (error) {
       console.error("Error joining game:", error);
@@ -115,19 +120,17 @@ const Games: React.FC = () => {
     {
       title: "Acciones",
       key: "actions",
-      render: (
-        record: {
-          id: string;
-          hostName: string;
-          status: string;
-          createdAt: string;
-        }
-      ) => {
+      render: (record: {
+        id: string;
+        hostName: string;
+        status: string;
+        createdAt: string;
+      }) => {
         console.log("Record:", record);
 
         return (
           <Button onClick={() => joinGame(record.id)} type="primary">
-            Ver
+            Unirse
           </Button>
         );
       },

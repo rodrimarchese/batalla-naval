@@ -1,48 +1,57 @@
 // src/components/WebSocketClient.js
 import { useEffect, useRef } from "react";
 
-const WebSocketClient = ({ url }: { url: string }) => {
+export const WebSocketClient = ({
+  url,
+  onMessage,
+  sendMessageRef,
+  userId,
+}: {
+  url: string;
+  userId: string;
+  onMessage: (message: string) => void;
+  sendMessageRef: React.MutableRefObject<(message: string) => void>;
+}) => {
   const ws = useRef<WebSocket | null>(null);
 
   useEffect(() => {
     ws.current = new WebSocket(url);
-    ws.current.onopen = () => console.log("ws opened");
-    ws.current.onclose = () => console.log("ws closed");
-    ws.current.onmessage = (event) => console.log("ws message", event.data);
-    ws.current.onerror = (error) => console.error("ws error", error);
+    ws.current.onopen = () => {
+      console.log("WebSocket connected");
+      const onConnectionMessage = JSON.stringify({
+        type: "onConnection",
+        userId: userId,
+        message: null,
+      });
+      console.log("Sending:", ws.current, onConnectionMessage);
+      if (ws.current) ws.current.send(onConnectionMessage);
+    };
+
+    ws.current.onclose = () => console.log("WebSocket closed");
+
+    ws.current.onmessage = (event) => {
+      console.log("WebSocket message received:", event.data);
+      if (onMessage) {
+        onMessage(event.data);
+      }
+    };
+
+    ws.current.onerror = (error) => console.error("WebSocket error:", error);
+
+    sendMessageRef.current = (message) => {
+      if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+        ws.current.send(message);
+      } else {
+        console.error("WebSocket is not connected.");
+      }
+    };
 
     const wsCurrent = ws.current;
 
     return () => {
       wsCurrent.close();
     };
-  }, [url]);
+  }, [url, onMessage, sendMessageRef, userId]);
 
-  // Función para enviar mensajes
-  const sendTextMessage = (message: string) => {
-    if (ws.current) {
-      ws.current.send(message);
-    } else {
-      console.error("Error sending msg, WebSocket is not connected.");
-    }
-  };
-
-//   const sendMessage = (message: any) => {
-//     if (ws.current) {
-//       ws.current.send(JSON.stringify(message));
-//     } else {
-//       console.error("Error sending msg, WebSocket is not connected.");
-//     }
-//   };
-
-  return (
-    <div>
-      <h2>WebSocket Client</h2>
-      <button onClick={() => sendTextMessage("Hello Server!")}>
-        Send Message
-      </button>
-    </div>
-  );
+  return null; // Este componente no necesita renderizar nada
 };
-
-export default WebSocketClient;

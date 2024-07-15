@@ -1,5 +1,7 @@
 {
   "compilerOptions": {
+    "noImplicitAny": false, // Permite el uso de 'any' sin declararlo explícitamente
+
     "target": "ES2020",
     "useDefineForClassFields": true,
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
