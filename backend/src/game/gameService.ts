@@ -3,9 +3,9 @@ import { User } from '../user/user';
 import { Game, GameStatus } from './game';
 import { convertToUserByData } from '../user/util';
 import { convertGames, convertToGame, mapStatusToDB } from './util';
-import { ApprovedGame, MessageSend, SendMessageType } from "../socket/types";
-import {sendMessageToUser} from '../index';
-import {CastedObject} from '../board/util';
+import { ApprovedGame, MessageSend, SendMessageType } from '../socket/types';
+import { sendMessageToUser } from '../index';
+import { CastedObject } from '../board/util';
 export async function saveGame(host: User, guest: User, status: GameStatus) {
   try {
     const possibleGame = {
@@ -169,7 +169,11 @@ export async function chooseGame(possibleGuest: User, game: Game) {
   return gameResult;
 }
 
-export async function startGame(game: Game) {
+export async function startGameD(
+  game: Game,
+  boardStatusHost: CastedObject,
+  boardStatusGuest: CastedObject,
+) {
   const { data, error } = await supabase
     .from('game')
     .update({
@@ -178,6 +182,7 @@ export async function startGame(game: Game) {
     .eq('id', game.id)
     .select('id');
 
+  console.log('Data ', data);
   if (error) {
     throw new Error('Error fetching game from Superbase');
   }
@@ -187,29 +192,17 @@ export async function startGame(game: Game) {
   const gameResult: Game = await gameById(id);
 
   if (gameResult.host != null && gameResult.guest != null) {
-    //Que le avise a los dos que empezó la partida
-
-
-    const approvedGame: ApprovedGame = {
-      hostId: gameResult.host.id,
-      hostName: gameResult.host.name,
-      guestId: gameResult.guest.id,
-      guestName: gameResult.guest.name,
-      gameId: gameResult.id,
-      status: GameStatus.Started,
-    };
-
     const messageHost: MessageSend = {
       userId: gameResult.host.id,
-      type: SendMessageType.GameSetUp,
-      message: JSON.stringify(approvedGame),
+      type: SendMessageType.onGameYourTurn,
+      message: JSON.stringify(boardStatusHost),
     };
     sendMessageToUser(messageHost);
 
     const messageGuest: MessageSend = {
       userId: gameResult.guest.id,
-      type: SendMessageType.GameSetUp,
-      message: JSON.stringify(approvedGame),
+      type: SendMessageType.onGameWaiting,
+      message: JSON.stringify(boardStatusGuest),
     };
     sendMessageToUser(messageGuest);
   }
@@ -217,40 +210,26 @@ export async function startGame(game: Game) {
   return gameResult;
 }
 
-export async function startGameD(game: Game, boardStatusHost: CastedObject, boardStatusGuest: CastedObject ) {
+export async function finishGame(game: Game) {
   const { data, error } = await supabase
     .from('game')
     .update({
-      status: GameStatus.Started })
+      status: GameStatus.Finished,
+    })
     .eq('id', game.id)
-    .select('id');
+    .select(
+      `
+                *,
+                guest:guest_id (
+                    *
+                ),
+                host:host_id (
+                    *
+                ) 
+            `,
+    );
 
-  console.log('Data ', data)
   if (error) {
     throw new Error('Error fetching game from Superbase');
   }
-
-  if (data === null) return null;
-  const id = data[0].id;
-  const gameResult: Game = await gameById(id);
-
-
-  if(gameResult.host != null && gameResult.guest != null){
-    const messageHost : MessageSend = {
-      userId: gameResult.host.id,
-      type: SendMessageType.onGameYourTurn,
-      message: JSON.stringify(boardStatusHost)
-    }
-    sendMessageToUser(messageHost);
-
-    const messageGuest : MessageSend = {
-      userId: gameResult.guest.id,
-      type: SendMessageType.onGameWaiting,
-      message: JSON.stringify(boardStatusGuest)
-    }
-    sendMessageToUser(messageGuest);
-  }
-
-  return gameResult
-
 }

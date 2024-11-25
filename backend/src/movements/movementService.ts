@@ -1,6 +1,6 @@
 import { supabase } from '../db/supabase';
 import { User } from '../user/user';
-import { Game } from '../game/game';
+import { Game, GameStatus } from '../game/game';
 import { userWithId } from '../user/userService';
 import { Movement } from './movement';
 import {
@@ -18,42 +18,62 @@ import { MessageSend, SendMessageType } from '../socket/types';
 import { sendMessageToUser } from '../index';
 
 export async function createMovement(userId: string, message: any) {
-  const user = await userWithId(userId);
-  const game = await gameById(message.gameId);
-  const x = message.xCoordinate;
-  const y = message.yCoordinate;
+  try {
+    const user = await userWithId(userId);
 
-  if (await checkIfCorrectTurn(user, game)) {
-    const possibleMovement = {
-      game_id: game.id,
-      user_id: user.id,
-      x_coordinate: x,
-      y_coordinate: y,
-    };
+    const game = await gameById(message.gameId);
 
-    const { data: gameQuery, error } = await supabase
-      .from('movements')
-      .insert([possibleMovement])
-      .select('*');
+    const x = message.xCoordinate;
+    const y = message.yCoordinate;
 
-    if (gameQuery === null) return null;
+    if (game.status == GameStatus.Finished) {
+      const messageSend: MessageSend = {
+        userId: userId,
+        type: SendMessageType.ErrorMessage,
+        message: JSON.stringify({ error: 'The game is finished' }),
+      };
+      await sendMessageToUser(messageSend);
+    } else if (await checkIfCorrectTurn(user, game)) {
+      const possibleMovement = {
+        game_id: game.id,
+        user_id: user.id,
+        x_coordinate: x,
+        y_coordinate: y,
+      };
 
-    const id = gameQuery[0].id;
+      const { data: gameQuery, error } = await supabase
+        .from('movements')
+        .insert([possibleMovement])
+        .select('*');
 
-    const movement = await movementById(id);
+      if (gameQuery === null) return null;
 
-    if (movement.game !== null && movement.user !== null) {
-      await changeStatusOfPiece(movement.game, movement.user, x, y);
-      await sendMessageOfStatus(game, user);
+      const id = gameQuery[0].id;
+
+      const movement = await movementById(id);
+
+      if (movement.game !== null && movement.user !== null) {
+        await changeStatusOfPiece(movement.game, movement.user, x, y);
+        await sendMessageOfStatus(game, user);
+      }
+      if (error) {
+        throw error;
+      }
+    } else {
+      const messageSend: MessageSend = {
+        userId: userId,
+        type: SendMessageType.ErrorMessage,
+        message: JSON.stringify({ error: 'not your turn' }),
+      };
+      await sendMessageToUser(messageSend);
     }
-    if (error) {
-      throw error;
-    }
-  } else {
+  } catch (e: any) {
     const messageSend: MessageSend = {
       userId: userId,
       type: SendMessageType.ErrorMessage,
-      message: JSON.stringify({ error: 'not your turn' }),
+      message: JSON.stringify({
+        error: 'INVALID VALUE (game, user or coordinates)',
+      }),
     };
     await sendMessageToUser(messageSend);
   }

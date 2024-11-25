@@ -8,7 +8,7 @@ import { ShipPartStatus } from './board';
 import { convertToUserByData } from '../user/util';
 import { convertToGameByData } from '../game/util';
 import { convertToBoard, CastedObject, castBoardItems } from './util';
-import { gameById, startGameD } from '../game/gameService';
+import { finishGame, gameById, startGameD } from '../game/gameService';
 import { userWithId } from '../user/userService';
 import { MessageSend, SendMessageType } from '../socket/types';
 import { sendMessageToUser } from '../index';
@@ -16,8 +16,48 @@ import { sendMessageToUser } from '../index';
 export async function addBoard(body: any, userId: string) {
   try {
     const game = await gameById(body.gameId);
+    if (game == null) {
+      const messageSend: MessageSend = {
+        userId: userId,
+        type: SendMessageType.ErrorMessage,
+        message: JSON.stringify({ error: 'This game does not exists' }),
+      };
+      await sendMessageToUser(messageSend);
+      return;
+    }
     const user = await userWithId(userId);
+    if (game.host?.id !== user.id && game.guest?.id !== user.id) {
+      const messageSend: MessageSend = {
+        userId: userId,
+        type: SendMessageType.ErrorMessage,
+        message: JSON.stringify({
+          error: 'You are not allowed to modify this game',
+        }),
+      };
+      await sendMessageToUser(messageSend);
+      return;
+    }
+
+    const existingBoard = await getBoardsForGameIdAndUserId(game, user);
+    if (
+      existingBoard &&
+      Array.isArray(existingBoard.ships) &&
+      existingBoard.ships.length > 0
+    ) {
+      console.log('entre aca ');
+      const messageSend: MessageSend = {
+        userId: userId,
+        type: SendMessageType.ErrorMessage,
+        message: JSON.stringify({
+          error: 'You have already set up your board',
+        }),
+      };
+      await sendMessageToUser(messageSend);
+      return;
+    }
+
     const boardDefined = await saveNewBoard(game, user, body.ships);
+    if (boardDefined == null) return;
 
     let userToCheck: User | null;
     //ACA chequear que el otro haya guardado el estado y en ese caso empezar el juego
@@ -54,6 +94,26 @@ export async function saveNewBoard(
   user: User,
   ships: { shipType: string; positions: { x: number; y: number }[] }[],
 ): Promise<CastedObject | null> {
+  const positionsSet = new Set<string>();
+
+  for (const ship of ships) {
+    for (const position of ship.positions) {
+      const positionKey = `${position.x}-${position.y}`;
+      if (positionsSet.has(positionKey)) {
+        const messageSend: MessageSend = {
+          userId: user.id,
+          type: SendMessageType.ErrorMessage,
+          message: JSON.stringify({
+            error: 'Invalid position, keys are duplicated',
+          }),
+        };
+        await sendMessageToUser(messageSend);
+        return null;
+      }
+      positionsSet.add(positionKey);
+    }
+  }
+
   //TODO: AGREGAR QUE NO SE PISEN EN LAS COORDENADAS
   const saveShipPromises = ships.map(async possibleShip => {
     const ship = await saveShip(possibleShip.shipType);
@@ -364,6 +424,7 @@ export async function sendMessageOfStatus(game: Game, user: User) {
     const allDeads = await checkAllPiecesDead(game, otherUser);
 
     if (allDeads) {
+      await finishGame(game);
       const boardDeadOtherUser = await getBoardsDeadFromUser(game, otherUser);
       const boardForUser = await getBoardsForGameIdAndUserId(game, user);
       const messageUser: MessageSend = {

@@ -239,12 +239,12 @@ server.listen(port, () => {
 });
 
 function isValidMessageSend(obj: any): obj is MessageSend {
-  console.log('entre aca')
   return (
-    obj &&
+    (obj &&
       typeof obj.userId === 'string' &&
-    typeof obj.type === 'string' &&
-    typeof obj.message === 'string' || typeof obj.message === 'object'
+      typeof obj.type === 'string' &&
+      typeof obj.message === 'string') ||
+    typeof obj.message === 'object'
   );
 }
 
