@@ -1,7 +1,5 @@
 import { Ship } from './ship';
-import { GameStatus } from '../game/game';
 import { ShipPartStatus } from '../board/board';
-import { User } from '../user/user';
 
 export function convertToShip(data: any[]): Ship {
   const map = data.map(shipData => {
