@@ -8,14 +8,10 @@ import { ShipPartStatus } from './board';
 import { convertToUserByData } from '../user/util';
 import { convertToGameByData } from '../game/util';
 import { convertToBoard, CastedObject, castBoardItems } from './util';
-import { gameById, startGameD } from "../game/gameService";
+import { gameById, startGameD } from '../game/gameService';
 import { userWithId } from '../user/userService';
-import {BoardWithShip} from './board';
-import { ApprovedGame, MessageSend, SendMessageType } from "../socket/types";
-import {sendMessageToUser} from '../index';
-
-
-
+import { MessageSend, SendMessageType } from '../socket/types';
+import { sendMessageToUser } from '../index';
 
 export async function addBoard(body: any, userId: string) {
   try {
@@ -23,32 +19,34 @@ export async function addBoard(body: any, userId: string) {
     const user = await userWithId(userId);
     const boardDefined = await saveNewBoard(game, user, body.ships);
 
-
-    let userToCheck : User | null;
+    let userToCheck: User | null;
     //ACA chequear que el otro haya guardado el estado y en ese caso empezar el juego
-    if(game.host?.id == user.id)
-      userToCheck = game.guest
-    else
-      userToCheck = game.host
+    if (game.host?.id == user.id) userToCheck = game.guest;
+    else userToCheck = game.host;
 
-    if(game.host !== null && game.host?.id !== null && game.guest != null &&game.guest?.id !== null){
+    if (
+      game.host !== null &&
+      game.host?.id !== null &&
+      game.guest != null &&
+      game.guest?.id !== null
+    ) {
       const boardForHost = await getBoardsForGameIdAndUserId(game, game.host);
       const boardForGuest = await getBoardsForGameIdAndUserId(game, game.guest);
 
-      if(userToCheck){
-        const checkReadyGameStatus = await checkBoardForAGameAndUser(game, userToCheck)
+      if (userToCheck) {
+        const checkReadyGameStatus = await checkBoardForAGameAndUser(
+          game,
+          userToCheck,
+        );
 
-        if(checkReadyGameStatus){
-          if(boardForGuest !== null && boardForHost !== null){
+        if (checkReadyGameStatus) {
+          if (boardForGuest !== null && boardForHost !== null) {
             startGameD(game, boardForHost, boardForGuest);
           }
         }
       }
     }
-    
-  } catch (error: any) {
-      
-  }
+  } catch (error: any) {}
 }
 
 export async function saveNewBoard(
@@ -67,9 +65,6 @@ export async function saveNewBoard(
   const boardItems = await Promise.all(saveShipPromises);
   return castBoardItems(boardItems); //ESTO LO TENGO QUE USAR AHORA ES QUE SI esta conectado los dos este objeto lo voy a usar para ir mandando estado
 }
-
-
-
 
 export async function checkBoardForAGameAndUser(game: Game, user: User) {
   const { data: existingRecord, error } = await supabase
@@ -190,10 +185,9 @@ export async function getBoardsForGameIdAndUserId(game: Game, user: User) {
     `,
     )
     .eq('game_id', game.id)
-    .eq('user_id', user.id)
-  
-  return castBoardWithShipItems(existingRecord)
+    .eq('user_id', user.id);
 
+  return castBoardWithShipItems(existingRecord);
 }
 
 export async function checkAllPiecesDead(game: Game, user: User) {
@@ -216,19 +210,19 @@ export async function checkAllPiecesDead(game: Game, user: User) {
     `,
     )
     .eq('game_id', game.id)
-    .eq('user_id', user.id)
+    .eq('user_id', user.id);
 
-  const castedBoard = castBoardWithShipItems(existingRecord)
+  const castedBoard = castBoardWithShipItems(existingRecord);
 
-  console.log('CASTED BOARD ', castedBoard)
-  if(castedBoard !== null){
+  console.log('CASTED BOARD ', castedBoard);
+  if (castedBoard !== null) {
     const allDead = castedBoard.ships.every(ship =>
-      ship.positions.every(position => position.status === 'dead')
+      ship.positions.every(position => position.status === 'dead'),
     );
-    return allDead
+    return allDead;
   }
- 
-  return false
+
+  return false;
 }
 
 export async function getBoardsDeadFromUser(game: Game, user: User) {
@@ -252,10 +246,9 @@ export async function getBoardsDeadFromUser(game: Game, user: User) {
     )
     .eq('game_id', game.id)
     .eq('user_id', user.id)
-    .eq('ship_part_status', 'dead')
+    .eq('ship_part_status', 'dead');
 
-  return getPositions(existingRecord)
-
+  return getPositions(existingRecord);
 }
 
 function castBoardWithShipItems(boardItems: any): CastedObject | null {
@@ -266,9 +259,15 @@ function castBoardWithShipItems(boardItems: any): CastedObject | null {
   const gameId = boardItems[0].game_id;
   const userId = boardItems[0].user_id;
 
-  const shipMap: { [key: string]: { shipId: string; shipType: string; positions: { x: number; y: number; status: string }[] } } = {};
+  const shipMap: {
+    [key: string]: {
+      shipId: string;
+      shipType: string;
+      positions: { x: number; y: number; status: string }[];
+    };
+  } = {};
 
-  boardItems.forEach((item: any )=> {
+  boardItems.forEach((item: any) => {
     if (item.ship) {
       const shipId = item.ship.id;
       const shipType = item.ship.ship_type;
@@ -294,9 +293,9 @@ function castBoardWithShipItems(boardItems: any): CastedObject | null {
   };
 }
 
-function getPositions(boardItems: any): {x:number, y: number}[] {
-  const positions : {x:number, y: number}[] = []
-  boardItems.forEach((item: any )=> {
+function getPositions(boardItems: any): { x: number; y: number }[] {
+  const positions: { x: number; y: number }[] = [];
+  boardItems.forEach((item: any) => {
     if (item.ship) {
       const position = {
         x: item.x_coordinate,
@@ -305,19 +304,21 @@ function getPositions(boardItems: any): {x:number, y: number}[] {
       positions.push(position);
     }
   });
-  return positions
+  return positions;
 }
 
+export async function changeStatusOfPiece(
+  game: Game,
+  userThatShot: User,
+  xCoordinate: number,
+  yCoordinate: number,
+) {
+  let user: User | null;
+  if (game.host?.id == userThatShot.id) user = game.guest;
+  else user = game.host;
 
-export async function changeStatusOfPiece(game: Game, userThatShot: User, xCoordinate: number, yCoordinate: number) {
-  let user : User | null;
-  if(game.host?.id == userThatShot.id)
-    user = game.guest
-  else
-    user = game.host
-
-  if(user !== null ){
-    const { data: existingRecord, error } = await supabase
+  if (user !== null) {
+    const { data: existingRecord } = await supabase
       .from('board')
       .select(
         `
@@ -338,76 +339,88 @@ export async function changeStatusOfPiece(game: Game, userThatShot: User, xCoord
       .eq('game_id', game.id)
       .eq('user_id', user.id)
       .eq('x_coordinate', xCoordinate)
-      .eq('y_coordinate', yCoordinate)
-    
+      .eq('y_coordinate', yCoordinate);
 
-    if(existingRecord !== null && existingRecord.length > 0){
+    if (existingRecord !== null && existingRecord.length > 0) {
       const position = existingRecord[0];
 
       const { data, error } = await supabase
         .from('board')
         .update({
-          ship_part_status: ShipPartStatus.Dead })
+          ship_part_status: ShipPartStatus.Dead,
+        })
         .eq('id', position.id)
         .select('id');
-
-     
     }
   }
-  
 }
 
-export async function sendMessageOfStatus(game: Game, user: User){
-  let otherUser : User | null;
+export async function sendMessageOfStatus(game: Game, user: User) {
+  let otherUser: User | null;
 
-  if(game.host?.id == user.id)
-    otherUser = game.guest
-  else
-    otherUser = game.host
-  if(otherUser != null){
-    const allDeads = await checkAllPiecesDead(game, otherUser)
-    
-    if(allDeads){
-      
-      const boardDeadOtherUser = await getBoardsDeadFromUser(game, otherUser)
-      const boardForUser = await getBoardsForGameIdAndUserId(game, user)
-      const messageUser : MessageSend = {
+  if (game.host?.id == user.id) otherUser = game.guest;
+  else otherUser = game.host;
+  if (otherUser != null) {
+    const allDeads = await checkAllPiecesDead(game, otherUser);
+
+    if (allDeads) {
+      const boardDeadOtherUser = await getBoardsDeadFromUser(game, otherUser);
+      const boardForUser = await getBoardsForGameIdAndUserId(game, user);
+      const messageUser: MessageSend = {
         userId: user.id,
         type: SendMessageType.finishGame,
-        message: JSON.stringify({ deadPiecesOfTheOther:boardDeadOtherUser, boardStatus: boardForUser, winner: true })
-      }
+        message: JSON.stringify({
+          deadPiecesOfTheOther: boardDeadOtherUser,
+          boardStatus: boardForUser,
+          winner: true,
+        }),
+      };
       sendMessageToUser(messageUser);
 
-      const boardDeadUser = await getBoardsDeadFromUser(game, user)
-      const boardForOtherUser = await getBoardsForGameIdAndUserId(game, otherUser)
+      const boardDeadUser = await getBoardsDeadFromUser(game, user);
+      const boardForOtherUser = await getBoardsForGameIdAndUserId(
+        game,
+        otherUser,
+      );
 
       const messageOtherUser: MessageSend = {
         userId: otherUser.id,
         type: SendMessageType.finishGame,
-        message: JSON.stringify({ deadPiecesOfTheOther:boardDeadUser, boardStatus: boardForOtherUser, winner: false})
-      }
+        message: JSON.stringify({
+          deadPiecesOfTheOther: boardDeadUser,
+          boardStatus: boardForOtherUser,
+          winner: false,
+        }),
+      };
       sendMessageToUser(messageOtherUser);
-    }else{
-      const boardDeadOtherUser = await getBoardsDeadFromUser(game, otherUser)
-      const boardForUser = await getBoardsForGameIdAndUserId(game, user)
+    } else {
+      const boardDeadOtherUser = await getBoardsDeadFromUser(game, otherUser);
+      const boardForUser = await getBoardsForGameIdAndUserId(game, user);
 
-      const messageUser : MessageSend = {
+      const messageUser: MessageSend = {
         userId: user.id,
         type: SendMessageType.onGameWaiting,
-        message: JSON.stringify({ deadPiecesOfTheOther:boardDeadOtherUser, boardStatus: boardForUser })
-      }
+        message: JSON.stringify({
+          deadPiecesOfTheOther: boardDeadOtherUser,
+          boardStatus: boardForUser,
+        }),
+      };
       sendMessageToUser(messageUser);
-      const boardDeadUser = await getBoardsDeadFromUser(game, user)
-      const boardForOtherUser = await getBoardsForGameIdAndUserId(game, otherUser)
+      const boardDeadUser = await getBoardsDeadFromUser(game, user);
+      const boardForOtherUser = await getBoardsForGameIdAndUserId(
+        game,
+        otherUser,
+      );
 
       const messageOtherUser: MessageSend = {
         userId: otherUser.id,
         type: SendMessageType.onGameYourTurn,
-        message: JSON.stringify({ deadPiecesOfTheOther:boardDeadUser, boardStatus: boardForOtherUser })
-      }
+        message: JSON.stringify({
+          deadPiecesOfTheOther: boardDeadUser,
+          boardStatus: boardForOtherUser,
+        }),
+      };
       sendMessageToUser(messageOtherUser);
     }
-    
-    
   }
 }
