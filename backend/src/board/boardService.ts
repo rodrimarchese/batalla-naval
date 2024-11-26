@@ -116,18 +116,21 @@ export async function saveNewBoard(
     }
   }
 
-  //TODO: AGREGAR QUE NO SE PISEN EN LAS COORDENADAS
-  const saveShipPromises = ships.map(async possibleShip => {
-    const ship = await saveShip(possibleShip.shipType);
-    const saveBoardPromises = possibleShip.positions.map(async position => {
-      return saveBoard(game, user, ship, position.x, position.y);
+  try {
+    const saveShipPromises = ships.map(async possibleShip => {
+      const ship = await saveShip(possibleShip.shipType);
+      const saveBoardPromises = possibleShip.positions.map(async position => {
+        return saveBoard(game, user, ship, position.x, position.y);
+      });
+      return Promise.all(saveBoardPromises);
     });
+
     const boardItems = await Promise.all(saveShipPromises);
-    return castBoardItems(boardItems); //ESTO LO TENGO QUE USAR AHORA ES QUE SI esta conectado los dos este objeto lo voy a usar para ir mandando estado
-  } catch (error: any) {
-    console.error('Error saving new board:', error);
+    return castBoardItems(boardItems);
+  } catch (error) {
+    console.error('Error in saveNewBoard:', error);
+    return null;
   }
-  return null;
 }
 
 export async function checkBoardForAGameAndUser(game: Game, user: User) {
