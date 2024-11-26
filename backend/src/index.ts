@@ -18,8 +18,8 @@ import { userRoutes } from './routes';
 import cors from 'cors';
 import { MessageSend, SendMessageType } from './socket/types';
 import { WebSocket } from 'ws';
-import { addBoard } from "./board/boardService";
-import { createMovement} from "./movements/movementService"
+import { addBoard } from './board/boardService';
+import { createMovement } from './movements/movementService';
 // Cargar variables de entorno
 process.loadEnvFile('.env.local');
 
@@ -57,18 +57,17 @@ wss.on('connection', (ws: WebSocket) => {
       const data = JSON.parse(message);
       if (isValidMessageSend(data)) {
         console.log('Mensaje válido:', data);
-        manageMessage(data);
+        await manageMessage(data);
       } else {
-        const messageSend : MessageSend = {
-          userId : data.userId,
+        const messageSend: MessageSend = {
+          userId: data.userId,
           type: SendMessageType.ErrorMessage,
-          message: 'Error persing'
-        }
+          message: 'Error persing',
+        };
         sendMessageToUser(messageSend);
         console.error('El mensaje parseado no es válido');
       }
       console.log(`Received message: ${message}`);
-    
 
       if (data.type == 'onConnection') {
         console.log(`User ${data.userId} connected.`);
@@ -121,7 +120,6 @@ app.get(
   },
 );
 
-
 export async function sendMessageToUser(messageSend: MessageSend) {
   const userConnection = userConnections.get(messageSend.userId);
   if (userConnection) {
@@ -167,13 +165,13 @@ async function saveMessage(messageSend: MessageSend, status: MessageStatus) {
 }
 
 async function manageMessage(data: MessageSend) {
-  if(data.type == SendMessageType.GameSetUp) {
-    await addBoard(data.message, data.userId);
+  if (data.type == SendMessageType.GameSetUp) {
+    console.log('GameSetUp', data);
+    await addBoard(JSON.parse(data.message), data.userId);
   }
-  if(data.type == SendMessageType.Shot){
-    await createMovement(data.userId, data.message )
+  if (data.type == SendMessageType.Shot) {
+    await createMovement(data.userId, data.message);
   }
-
 }
 
 export async function sendAllMessagesPending(userId: string) {
@@ -241,10 +239,12 @@ server.listen(port, () => {
 });
 
 function isValidMessageSend(obj: any): obj is MessageSend {
-  return obj &&
+  return (
+    obj &&
     typeof obj.userId === 'string' &&
     typeof obj.type === 'string' &&
-    typeof obj.message === 'string';
+    typeof obj.message === 'string'
+  );
 }
 
 //message:

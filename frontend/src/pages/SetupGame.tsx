@@ -8,7 +8,7 @@ interface UserData {
   email: string;
 }
 
-const SetupGame = ({ gameData, sendMessage }) => {
+const SetupGame = ({ gameData, sendMessage, userId }) => {
   console.log("gameData:", gameData);
 
   const gridSize = 15; // 15x15 grid
@@ -107,14 +107,34 @@ const SetupGame = ({ gameData, sendMessage }) => {
     return validMove;
   };
 
-  const logPositions = () => {
-    console.log(
-      "Current positions:",
-      ships.map((ship) => ({
-        id: ship.id,
-        positions: ship.positions,
-      }))
-    );
+  // const logPositions = () => {
+  //   console.log(
+  //     "Current positions:",
+  //     ships.map((ship) => ({
+  //       id: ship.id,
+  //       positions: ship.positions,
+  //     }))
+  //   );
+  // };
+
+  const sendShipSetup = () => {
+    const shipData = ships.map((ship) => ({
+      shipType: ship.id,
+      positions: ship.positions,
+    }));
+
+    console.log("Sending ship setup:", shipData);
+
+    const message = {
+      userId: userId,
+      type: "settingUp",
+      message: JSON.stringify({
+        gameId: gameData.id,
+        ships: shipData,
+      }),
+    };
+
+    sendMessage(JSON.stringify(message));
   };
 
   return (
@@ -156,7 +176,7 @@ const SetupGame = ({ gameData, sendMessage }) => {
         </ul>
       </div>
       <div>
-        <Button onClick={logPositions}>Log positions</Button>
+        <Button onClick={sendShipSetup}>Log positions</Button>
       </div>
     </>
   );

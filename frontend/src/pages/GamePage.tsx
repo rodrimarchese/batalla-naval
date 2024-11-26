@@ -9,12 +9,14 @@ import { useUser } from "@clerk/clerk-react";
 export enum GameStatus {
   Pending = "pending",
   SettingUp = "settingUp",
+  onGameWaiting = "onGameWaiting",
+  onGameYourTurn = "onGameYourTurn",
   Started = "started",
   Finished = "finished",
 }
 
 const VITE_BACKEND_URL = import.meta.env.VITE_BACKEND_URL as string;
-const WS_BACKEND_URL = import.meta.env.WS_BACKEND_URL as string;
+const VITE_WS_BACKEND_URL = import.meta.env.VITE_WS_BACKEND_URL as string;
 
 const GamePage = () => {
   const { gameId } = useParams<{ gameId: string }>();
@@ -30,10 +32,17 @@ const GamePage = () => {
   const handleWebSocketMessage = useCallback((data: any) => {
     const message = JSON.parse(data);
     console.log("Received message ACA:", message);
+    // if (message.type === "onGameWaiting") {
+    //   setGameData((prevData) => ({
+    //     ...prevData,
+    //     status: message.status,
+    //   }));
+    // }
     if (message.status) {
       setGameData((prevData) => ({
         ...prevData,
         status: message.status,
+        // status: GameStatus.Started,
       }));
     }
   }, []);
@@ -68,7 +77,7 @@ const GamePage = () => {
   return (
     <>
       <WebSocketClient
-        url={`${WS_BACKEND_URL}`}
+        url={`${VITE_WS_BACKEND_URL}`}
         onMessage={handleWebSocketMessage}
         userId={userId}
         sendMessageRef={sendMessageRef}
@@ -77,11 +86,20 @@ const GamePage = () => {
         <GameLobby gameData={gameData} />
       )}
       {gameData.status === GameStatus.SettingUp && (
-        <SetupGame gameData={gameData} sendMessage={sendMessage} />
+        <SetupGame
+          gameData={gameData}
+          sendMessage={sendMessage}
+          userId={userId}
+        />
       )}
-      {gameData.status === GameStatus.Started && (
-        <ActiveGame gameData={gameData} />
-      )}
+      {gameData.status === GameStatus.onGameWaiting ||
+        (gameData.status === GameStatus.onGameYourTurn && (
+          <ActiveGame
+            gameData={gameData}
+            sendMessage={sendMessage}
+            userId={userId}
+          />
+        ))}
     </>
   );
 };
