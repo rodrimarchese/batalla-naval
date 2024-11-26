@@ -22,7 +22,7 @@ const ActiveGame = ({ gameData, sendMessage, userId }) => {
         />
       ) : (
         <div className="text-center">
-          <p>Loading...</p> {/* Mostrar algún loader aquí */}
+          <p>Waiting for Opponent...</p>
         </div>
       )}
       <Link to="/games" className="text-blue-500 hover:underline mt-4 block">

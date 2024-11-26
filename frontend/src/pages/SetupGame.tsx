@@ -178,6 +178,9 @@ const SetupGame = ({ gameData, sendMessage, userId }) => {
       <div>
         <Button onClick={sendShipSetup}>Log positions</Button>
       </div>
+      <div>
+        <Button onClick={sendShipSetup}>I'm ready</Button>
+      </div>
     </>
   );
 };
