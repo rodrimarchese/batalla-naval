@@ -13,4 +13,8 @@ export type Game = {
   guest: User | null;
   status: GameStatus; //esto cuando tengamos lo de notificaciones va a importar, mientras tanto no
   createdAt: Date;
+  startedAt: Date | null; // Fecha de inicio del juego
+  finishedAt: Date | null; // Fecha de finalización del juego
+  currentTurnStartedAt: Date | null;
+  winner: User | null;
 };

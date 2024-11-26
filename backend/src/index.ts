@@ -121,6 +121,7 @@ app.get(
 );
 
 export async function sendMessageToUser(messageSend: MessageSend) {
+  //PONERME DE ACUERDO CON @RODRI si esto mandarlo asi o con todo
   const userConnection = userConnections.get(messageSend.userId);
   if (userConnection) {
     await saveMessage(messageSend, MessageStatus.send);
@@ -240,10 +241,11 @@ server.listen(port, () => {
 
 function isValidMessageSend(obj: any): obj is MessageSend {
   return (
-    obj &&
-    typeof obj.userId === 'string' &&
-    typeof obj.type === 'string' &&
-    typeof obj.message === 'string'
+    (obj &&
+      typeof obj.userId === 'string' &&
+      typeof obj.type === 'string' &&
+      typeof obj.message === 'string') ||
+    typeof obj.message === 'object'
   );
 }
 

@@ -8,4 +8,5 @@ export type Movement = {
   xCoordinate: number;
   yCoordinate: number;
   movedAt: Date;
+  hit: boolean;
 };

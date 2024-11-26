@@ -9,6 +9,10 @@ export function convertToGame(
   guest: User | null,
   status: string,
   createdAt: any,
+  startedAt: any,
+  finishedAt: any,
+  currentTurnStartedAt: any,
+  winner: User | null,
 ): Game {
   return {
     id,
@@ -16,6 +20,12 @@ export function convertToGame(
     guest,
     status: mapStatusFromDB(status),
     createdAt: new Date(createdAt),
+    startedAt: startedAt ? new Date(startedAt) : null,
+    finishedAt: finishedAt ? new Date(finishedAt) : null,
+    currentTurnStartedAt: currentTurnStartedAt
+      ? new Date(currentTurnStartedAt)
+      : null,
+    winner: winner,
   };
 }
 
@@ -35,10 +45,16 @@ export function convertGames(data: any[]): Game[] {
   return data.map(gameData => {
     return {
       id: gameData.id,
-      host: convertToUserByData(gameData.host),
-      guest: convertToUserByData(gameData.guest),
+      host: gameData.host ? convertToUserByData(gameData.host) : null,
+      guest: gameData.guest ? convertToUserByData(gameData.guest) : null,
       status: mapStatusFromDB(gameData.status),
       createdAt: new Date(gameData.created_at),
+      startedAt: gameData.started_at ? new Date(gameData.started_at) : null,
+      finishedAt: gameData.finished_at ? new Date(gameData.finished_at) : null,
+      currentTurnStartedAt: gameData.current_turn_started_at
+        ? new Date(gameData.current_turn_started_at)
+        : null,
+      winner: gameData.winner ? convertToUserByData(gameData.host) : null,
     };
   });
 }
@@ -47,9 +63,15 @@ export function convertToGameByData(data: any): Game | null {
   if (data == null) return null;
   return {
     id: data.id,
-    host: data.host,
-    guest: data.guest,
+    host: data.host ? convertToUserByData(data.host) : null,
+    guest: data.guest ? convertToUserByData(data.guest) : null,
     status: mapStatusFromDB(data.status),
     createdAt: new Date(data.created_at),
+    startedAt: data.started_at ? new Date(data.started_at) : null,
+    finishedAt: data.ended_at ? new Date(data.ended_at) : null,
+    currentTurnStartedAt: data.current_turn_started_at
+      ? new Date(data.current_turn_started_at)
+      : null,
+    winner: data.winner ? convertToUserByData(data.host) : null,
   };
 }

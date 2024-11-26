@@ -1,4 +1,4 @@
-import { GameStatus } from "../game/game";
+import { GameStatus } from '../game/game';
 
 export enum SendMessageType {
   GameSetUp = 'settingUp',
@@ -10,13 +10,12 @@ export enum SendMessageType {
   Shot = 'shot',
 }
 
-
 export type ApprovedGame = {
-  hostId: String;
-  hostName: String;
-  guestId: String;
-  guestName: String;
-  gameId: String;
+  hostId: string;
+  hostName: string;
+  guestId: string;
+  guestName: string;
+  gameId: string;
   status: GameStatus;
 };
 

@@ -9,6 +9,7 @@ import {
 } from './gameService';
 import { GameStatus } from './game';
 
+// CREA JUEGO ENTRE 2 USUARIOS, con estado started
 export async function createGameWithUsers(req: Request, res: Response) {
   try {
     const body = req.body;
@@ -26,6 +27,7 @@ export async function createGameWithUsers(req: Request, res: Response) {
   }
 }
 
+// ABRE UN JUEGO CON UN HOST, con estado pending
 export async function createGameOpen(req: Request, res: Response) {
   try {
     const body = req.body;
@@ -42,6 +44,7 @@ export async function createGameOpen(req: Request, res: Response) {
   }
 }
 
+// Pide todos los pending games
 export async function getAllPendingGames(req: Request, res: Response) {
   try {
     const game = await pendingGames();
@@ -51,6 +54,7 @@ export async function getAllPendingGames(req: Request, res: Response) {
   }
 }
 
+// Se puede agregar a un juego
 export async function addMeToGame(req: Request, res: Response) {
   try {
     const body = req.body;
@@ -64,6 +68,7 @@ export async function addMeToGame(req: Request, res: Response) {
   }
 }
 
+//PIDE UN JUEGO
 export async function getGame(req: Request, res: Response) {
   try {
     const game = await gameById(req.params.id);
