@@ -439,6 +439,9 @@ export async function sendMessageOfStatus(game: Game, user: User) {
   if (otherUser != null) {
     const allDeads = await checkAllPiecesDead(game, otherUser);
 
+    const userMissedHits = await getMissedHits(game.id, user.id);
+    const rivalMissedHits = await getMissedHits(game.id, otherUser.id);
+
     if (allDeads) {
       await finishGame(game, user);
       const boardDeadOtherUser = await getBoardsDeadFromUser(game, otherUser);
@@ -450,6 +453,8 @@ export async function sendMessageOfStatus(game: Game, user: User) {
           deadPiecesOfTheOther: boardDeadOtherUser,
           boardStatus: boardForUser,
           winner: true,
+          yourMissedHits: userMissedHits,
+          rivalMissedHits: rivalMissedHits,
         }),
       };
       sendMessageToUser(messageUser);
@@ -467,6 +472,8 @@ export async function sendMessageOfStatus(game: Game, user: User) {
           deadPiecesOfTheOther: boardDeadUser,
           boardStatus: boardForOtherUser,
           winner: false,
+          yourMissedHits: rivalMissedHits,
+          rivalMissedHits: userMissedHits,
         }),
       };
       sendMessageToUser(messageOtherUser);
@@ -480,6 +487,8 @@ export async function sendMessageOfStatus(game: Game, user: User) {
         message: JSON.stringify({
           deadPiecesOfTheOther: boardDeadOtherUser,
           boardStatus: boardForUser,
+          yourMissedHits: userMissedHits,
+          rivalMissedHits: rivalMissedHits,
         }),
       };
       sendMessageToUser(messageUser);
@@ -495,9 +504,30 @@ export async function sendMessageOfStatus(game: Game, user: User) {
         message: JSON.stringify({
           deadPiecesOfTheOther: boardDeadUser,
           boardStatus: boardForOtherUser,
+          yourMissedHits: rivalMissedHits,
+          rivalMissedHits: userMissedHits,
         }),
       };
       sendMessageToUser(messageOtherUser);
     }
+  }
+
+  async function getMissedHits(gameId: string, userId: string) {
+    const { data, error } = await supabase
+      .from('movements')
+      .select('x_coordinate, y_coordinate')
+      .eq('game_id', gameId)
+      .eq('user_id', userId)
+      .eq('hit', false);
+
+    if (error || !data) {
+      console.error('Error fetching missed hits:', error);
+      return [];
+    }
+
+    return data.map(movement => ({
+      x: movement.x_coordinate,
+      y: movement.y_coordinate,
+    }));
   }
 }
