@@ -64,7 +64,7 @@ wss.on('connection', (ws: WebSocket) => {
           type: SendMessageType.ErrorMessage,
           message: 'Error persing',
         };
-        sendMessageToUser(messageSend);
+        await sendMessageToUser(messageSend);
         console.error('El mensaje parseado no es válido');
       }
       console.log(`Received message: ${message}`);
@@ -124,8 +124,12 @@ export async function sendMessageToUser(messageSend: MessageSend) {
   //PONERME DE ACUERDO CON @RODRI si esto mandarlo asi o con todo
   const userConnection = userConnections.get(messageSend.userId);
   if (userConnection) {
+    const messageObject = {
+      type: messageSend.type,
+      message: messageSend.message,
+    };
     await saveMessage(messageSend, MessageStatus.send);
-    userConnection.send(messageSend.message);
+    userConnection.send(JSON.stringify(messageObject));
   } else {
     await saveMessage(messageSend, MessageStatus.pending);
     console.error(
