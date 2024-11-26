@@ -53,7 +53,20 @@ export async function createMovement(userId: string, message: any) {
       const movement = await movementById(id);
 
       if (movement.game !== null && movement.user !== null) {
-        await changeStatusOfPiece(movement.game, movement.user, x, y);
+        const { data, error } = await supabase
+          .from('game')
+          .update({
+            current_turn_started_at: new Date().toISOString(),
+          })
+          .eq('id', game.id)
+          .select('id');
+        await changeStatusOfPiece(
+          movement.game,
+          movement.user,
+          x,
+          y,
+          movement.id,
+        );
         await sendMessageOfStatus(game, user);
       }
       if (error) {
@@ -112,6 +125,7 @@ export async function movementById(id: string) {
     data.x_coordinate,
     data.y_coordinate,
     data.moved_at,
+    data.hit,
   );
 }
 
@@ -122,6 +136,7 @@ export function convertToMove(
   xCoordinate: number,
   yCoordinate: number,
   movedAt: Date,
+  hit: boolean,
 ): Movement {
   return {
     id,
@@ -130,6 +145,7 @@ export function convertToMove(
     xCoordinate,
     yCoordinate,
     movedAt,
+    hit,
   };
 }
 

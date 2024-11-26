@@ -44,7 +44,6 @@ export async function addBoard(body: any, userId: string) {
       Array.isArray(existingBoard.ships) &&
       existingBoard.ships.length > 0
     ) {
-      console.log('entre aca ');
       const messageSend: MessageSend = {
         userId: userId,
         type: SendMessageType.ErrorMessage,
@@ -372,6 +371,7 @@ export async function changeStatusOfPiece(
   userThatShot: User,
   xCoordinate: number,
   yCoordinate: number,
+  movementId: string,
 ) {
   let user: User | null;
   if (game.host?.id == userThatShot.id) user = game.guest;
@@ -411,6 +411,14 @@ export async function changeStatusOfPiece(
         })
         .eq('id', position.id)
         .select('id');
+
+      await supabase
+        .from('movements')
+        .update({
+          hit: true,
+        })
+        .eq('id', movementId)
+        .select('id');
     }
   }
 }
@@ -424,7 +432,7 @@ export async function sendMessageOfStatus(game: Game, user: User) {
     const allDeads = await checkAllPiecesDead(game, otherUser);
 
     if (allDeads) {
-      await finishGame(game);
+      await finishGame(game, user);
       const boardDeadOtherUser = await getBoardsDeadFromUser(game, otherUser);
       const boardForUser = await getBoardsForGameIdAndUserId(game, user);
       const messageUser: MessageSend = {

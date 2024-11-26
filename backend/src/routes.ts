@@ -9,9 +9,15 @@ import {
   getGame,
 } from './game/gameController';
 
-import {sendMessages} from './message/controller'
+import { sendMessages } from './message/controller';
 import { addBoard } from './board/boardController';
-import {getMovementsForGame} from './movements/movementController'
+import { getMovementsForGame } from './movements/movementController';
+import {
+  getAverageGameDuration,
+  getUserAccuracyStats,
+  getUserGameHistory,
+  getWinLossStats,
+} from './stadistics/statisticsController';
 export const userRoutes = Router();
 
 userRoutes.post('/createUser', createUser);
@@ -31,3 +37,11 @@ userRoutes.put('/game/addMe', addMeToGame);
 userRoutes.post('/board', addBoard);
 
 userRoutes.get('/movements', getMovementsForGame);
+
+userRoutes.get('/statistics/history/:userId', getUserGameHistory);
+
+userRoutes.get('/statistics/winOrLost/:userId', getWinLossStats);
+
+userRoutes.get('/statistics/accuracy/:userId', getUserAccuracyStats);
+
+userRoutes.get('/statistics/averageDuration/:userId', getAverageGameDuration);

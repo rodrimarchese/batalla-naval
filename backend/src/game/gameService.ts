@@ -86,7 +86,17 @@ export async function gameById(id: string) {
   const host = convertToUserByData(data.host);
   const guest = convertToUserByData(data.guest);
 
-  return convertToGame(data.id, host, guest, data.status, data.created_at);
+  return convertToGame(
+    data.id,
+    host,
+    guest,
+    data.status,
+    data.created_at,
+    data.started_at,
+    data.finished_at,
+    data.current_turn_started_at,
+    data.winner,
+  );
 }
 
 export async function pendingGames(): Promise<Game[]> {
@@ -178,11 +188,11 @@ export async function startGameD(
     .from('game')
     .update({
       status: GameStatus.Started,
+      started_at: new Date().toISOString(),
     })
     .eq('id', game.id)
     .select('id');
 
-  console.log('Data ', data);
   if (error) {
     throw new Error('Error fetching game from Superbase');
   }
@@ -210,11 +220,13 @@ export async function startGameD(
   return gameResult;
 }
 
-export async function finishGame(game: Game) {
+export async function finishGame(game: Game, winner: User) {
   const { data, error } = await supabase
     .from('game')
     .update({
       status: GameStatus.Finished,
+      finished_at: new Date().toISOString(),
+      winner_id: winner.id,
     })
     .eq('id', game.id)
     .select(
