@@ -26,14 +26,17 @@ const ActiveGameBoard = ({
     newBoard[y][x] = "shot"; // Marcar la celda como disparada
     setBoard(newBoard);
 
-    console.log(`Shot at: (${x}, ${y})`);
-
-    // Preparar el mensaje a enviar
     const shotMessage = {
       userId: userId,
-      type: "Shot",
-      message: { gameId: gameData.id, x: x, y: y },
+      type: "shot",
+      message: {
+        gameId: gameData.id,
+        xCoordinate: x,
+        yCoordinate: y,
+      },
     };
+
+    console.log(`Shot at: (${x}, ${y})`);
 
     // Enviar mensaje de disparo
     sendMessage(JSON.stringify(shotMessage));

@@ -15,6 +15,21 @@ export enum GameStatus {
   Finished = "finished",
 }
 
+interface ReceivedData {
+  type: string;
+  message: string; // Este es un string JSON
+}
+
+interface MessageData {
+  hostId: string;
+  hostName: string;
+  guestId: string;
+  guestName: string;
+  gameId: string;
+  status: string;
+  type?: string; // Puede estar presente en algunos mensajes
+}
+
 const VITE_BACKEND_URL = import.meta.env.VITE_BACKEND_URL as string;
 const VITE_WS_BACKEND_URL = import.meta.env.VITE_WS_BACKEND_URL as string;
 
@@ -30,20 +45,36 @@ const GamePage = () => {
   console.log("game data:", gameData);
 
   const handleWebSocketMessage = useCallback((data: any) => {
-    const message = JSON.parse(data);
-    console.log("Received message ACA:", message);
-    // if (message.type === "onGameWaiting") {
-    //   setGameData((prevData) => ({
-    //     ...prevData,
-    //     status: message.status,
-    //   }));
-    // }
-    if (message.status) {
+    try {
+      // 1. Verificar si 'data' es un string y parsearlo
+      const parsedData: ReceivedData =
+        typeof data === "string" ? JSON.parse(data) : data;
+      console.log("Received message DATA:", parsedData);
+
+      // 2. Parsear la propiedad 'message' que también es un string JSON
+      const message: MessageData = JSON.parse(parsedData.message);
+      console.log("Received message ACA:", message);
+
+      // 3. Actualizar el estado según el tipo y el status
+      // if (
+      //   parsedData.type === "onGameWaiting" ||
+      //   parsedData.type === "onGameYourTurn"
+      // ) {
       setGameData((prevData) => ({
         ...prevData,
-        status: message.status,
-        // status: GameStatus.Started,
+        status: parsedData.type,
       }));
+      // }
+
+      // if (message.status) {
+      //   setGameData((prevData) => ({
+      //     ...prevData,
+      //     status: message.status,
+      //     // Puedes añadir otros campos aquí si es necesario
+      //   }));
+      // }
+    } catch (error) {
+      console.error("Error parsing WebSocket message:", error);
     }
   }, []);
 
@@ -74,6 +105,8 @@ const GamePage = () => {
 
   if (!gameData || !userId) return <div>Loading...</div>;
 
+  console.log("gameData actual de este jugador:", gameData);
+
   return (
     <>
       <WebSocketClient
@@ -92,14 +125,14 @@ const GamePage = () => {
           userId={userId}
         />
       )}
-      {gameData.status === GameStatus.onGameWaiting ||
-        (gameData.status === GameStatus.onGameYourTurn && (
-          <ActiveGame
-            gameData={gameData}
-            sendMessage={sendMessage}
-            userId={userId}
-          />
-        ))}
+      {(gameData.status === GameStatus.onGameWaiting ||
+        gameData.status === GameStatus.onGameYourTurn) && (
+        <ActiveGame
+          gameData={gameData}
+          sendMessage={sendMessage}
+          userId={userId}
+        />
+      )}
     </>
   );
 };
