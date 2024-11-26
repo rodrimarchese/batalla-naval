@@ -13,6 +13,7 @@
     "@clerk/clerk-react": "^5.0.0",
     "@dnd-kit/core": "^6.1.0",
     "antd": "^5.16.4",
+    "axios": "^1.7.8",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-draggable": "^4.4.6",
