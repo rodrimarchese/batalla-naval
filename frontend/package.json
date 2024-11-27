@@ -18,7 +18,8 @@
     "react-dom": "^18.2.0",
     "react-draggable": "^4.4.6",
     "react-hook-form": "^7.51.4",
-    "react-router-dom": "^6.22.3"
+    "react-router-dom": "^6.22.3",
+    "recharts": "^2.13.3"
   },
   "devDependencies": {
     "@types/node": "^20.12.7",
