@@ -23,5 +23,5 @@ export type ApprovedGame = {
 export type MessageSend = {
   userId: string;
   type: SendMessageType;
-  message: string;
+  message: any;
 };

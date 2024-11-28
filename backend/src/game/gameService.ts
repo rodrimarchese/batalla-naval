@@ -208,14 +208,14 @@ export async function startGameD(
     const messageHost: MessageSend = {
       userId: gameResult.host.id,
       type: SendMessageType.onGameYourTurn,
-      message: JSON.stringify(boardStatusHost),
+      message: boardStatusHost,
     };
     sendMessageToUser(messageHost);
 
     const messageGuest: MessageSend = {
       userId: gameResult.guest.id,
       type: SendMessageType.onGameWaiting,
-      message: JSON.stringify(boardStatusGuest),
+      message: boardStatusGuest,
     };
     sendMessageToUser(messageGuest);
   }
