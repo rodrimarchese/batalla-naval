@@ -8,6 +8,7 @@ export enum SendMessageType {
   finishGame = 'finishGame',
   ErrorMessage = 'error',
   Shot = 'shot',
+  GameSetUpAutoPlay = 'settingUpAutoPlay',
 }
 
 export type ApprovedGame = {

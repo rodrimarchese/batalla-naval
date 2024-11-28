@@ -1,7 +1,6 @@
 import { UUID } from 'crypto';
 import { User } from '../user/user';
 import { Game } from '../game/game';
-import { mapStatusFromDB } from '../game/util';
 import { Ship } from '../ship/ship';
 import { Board, ShipPartStatus } from './board';
 import { mapShipStatusFromDB } from '../ship/util';
@@ -95,15 +94,19 @@ export type CastedObject = {
   status?: string;
   gameId: string;
   userId: string;
-  ships: {
-    shipType: string;
-    shipId: string;
-    positions: {
-      x: number;
-      y: number;
-      status: string;
+  boardStatus: {
+    gameId: string;
+    userId: string;
+    ships: {
+      shipType: string;
+      shipId: string;
+      positions: {
+        x: number;
+        y: number;
+        status: string;
+      }[];
     }[];
-  }[];
+  };
 };
 
 export function castBoardItems(
@@ -155,7 +158,11 @@ export function castBoardItems(
     return {
       gameId,
       userId,
-      ships,
+      boardStatus: {
+        gameId,
+        userId,
+        ships,
+      },
     };
   }
 

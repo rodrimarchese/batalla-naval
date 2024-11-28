@@ -1,12 +1,12 @@
 import express, {
   Application,
+  ErrorRequestHandler,
+  NextFunction,
   Request,
   Response,
-  NextFunction,
-  ErrorRequestHandler,
 } from 'express';
 import { Server as HTTPServer } from 'http';
-import { Server as WebSocketServer } from 'ws';
+import { Server as WebSocketServer, WebSocket } from 'ws';
 import { MessageStatus } from './message/util';
 import {
   ClerkExpressRequireAuth,
@@ -17,9 +17,9 @@ import { createClient } from '@supabase/supabase-js';
 import { userRoutes } from './routes';
 import cors from 'cors';
 import { MessageSend, SendMessageType } from './socket/types';
-import { WebSocket } from 'ws';
 import { addBoard } from './board/boardService';
 import { createMovement } from './movements/movementService';
+import {autoArrangeShips} from "./board/autoPlay/boardAutoPlay";
 // Cargar variables de entorno
 process.loadEnvFile('.env.local');
 
@@ -169,10 +169,20 @@ async function saveMessage(messageSend: MessageSend, status: MessageStatus) {
   }
 }
 
+export function prepareAutoArrangeMessage(data: any) {
+  const parsedMessage = JSON.parse(data.message);
+  const gameId = parsedMessage.gameId;
+  const ships = autoArrangeShips();
+  return { gameId, ships };
+}
+
+
 async function manageMessage(data: MessageSend) {
   if (data.type == SendMessageType.GameSetUp) {
-    console.log('GameSetUp', data);
     await addBoard(JSON.parse(data.message), data.userId);
+  }
+  if (data.type == SendMessageType.GameSetUpAutoPlay) {
+    await addBoard(prepareAutoArrangeMessage(data.message), data.userId);
   }
   if (data.type == SendMessageType.Shot) {
     await createMovement(data.userId, data.message);

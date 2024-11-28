@@ -42,8 +42,8 @@ export async function addBoard(body: any, userId: string) {
     const existingBoard = await getBoardsForGameIdAndUserId(game, user);
     if (
       existingBoard &&
-      Array.isArray(existingBoard.ships) &&
-      existingBoard.ships.length > 0
+      Array.isArray(existingBoard.boardStatus.ships) &&
+      existingBoard.boardStatus.ships.length > 0
     ) {
       const messageSend: MessageSend = {
         userId: userId,
@@ -283,7 +283,7 @@ export async function checkAllPiecesDead(game: Game, user: User) {
 
   console.log('CASTED BOARD ', castedBoard);
   if (castedBoard !== null) {
-    const allDead = castedBoard.ships.every(ship =>
+    const allDead = castedBoard.boardStatus.ships.every(ship =>
       ship.positions.every(position => position.status === 'dead'),
     );
     return allDead;
@@ -356,7 +356,11 @@ function castBoardWithShipItems(boardItems: any): CastedObject | null {
   return {
     gameId,
     userId,
-    ships,
+    boardStatus: {
+      gameId,
+      userId,
+      ships,
+    },
   };
 }
 
