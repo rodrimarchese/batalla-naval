@@ -1,29 +1,78 @@
-import React, { useState } from "react";
+// ActiveGameBoard.js
+import React, { useState, useEffect } from "react";
 
 const ActiveGameBoard = ({
   gameData,
   gridSize,
   cellSize,
+  boardType, // "attack" o "defense"
   playerCanShoot,
   sendMessage,
-  userId, // Asegúrate de pasar el userId desde el componente padre
+  userId,
 }) => {
   const [board, setBoard] = useState(
-    Array(gridSize).fill(Array(gridSize).fill(null))
+    Array(gridSize)
+      .fill(null)
+      .map(() => Array(gridSize).fill(null))
   );
 
+  // Actualizar el tablero cuando gameData cambie
+  useEffect(() => {
+    const newBoard = Array(gridSize)
+      .fill(null)
+      .map(() => Array(gridSize).fill(null));
+
+    if (boardType === "defense") {
+      // Tablero de defensa: mostrar tus naves y los disparos del oponente
+      const ships = gameData.boardStatus?.ships || [];
+      ships.forEach((ship) => {
+        ship.positions.forEach((pos) => {
+          const { x, y, status } = pos;
+          if (status === "alive") {
+            newBoard[y][x] = "ship";
+          } else if (status === "hit") {
+            newBoard[y][x] = "hit";
+          }
+        });
+      });
+
+      // Si tienes información de los disparos del oponente, actualízala aquí
+      const opponentShots = gameData.opponentShots || [];
+      opponentShots.forEach((shot) => {
+        const { x, y, result } = shot;
+        if (newBoard[y][x] === null) {
+          newBoard[y][x] = result === "miss" ? "miss" : null;
+        }
+      });
+    } else if (boardType === "attack") {
+      // Tablero de ataque: mostrar tus disparos al oponente
+      const playerShots = gameData.playerShots || [];
+      playerShots.forEach((shot) => {
+        const { x, y, result } = shot;
+        newBoard[y][x] = result;
+      });
+    }
+
+    setBoard(newBoard);
+  }, [gameData, boardType, gridSize]);
+
   const handleCellClick = (x, y) => {
+    if (boardType !== "attack") return; // Solo puedes hacer clic en el tablero de ataque
+
     if (!playerCanShoot) {
       console.log("Wait for your turn!");
-      return; // No hacer nada si no es el turno del jugador
+      return;
     }
+
     if (board[y][x] !== null) {
       console.log("Position already shot!");
-      return; // Evitar disparar sobre la misma celda más de una vez
+      return;
     }
+
+    // Marcar la celda como "pending" mientras esperas la respuesta del servidor
     const newBoard = [...board];
     newBoard[y] = [...newBoard[y]];
-    newBoard[y][x] = "shot"; // Marcar la celda como disparada
+    newBoard[y][x] = "pending";
     setBoard(newBoard);
 
     const shotMessage = {
@@ -53,20 +102,44 @@ const ActiveGameBoard = ({
       }}
     >
       {board.map((row, y) =>
-        row.map((cell, x) => (
-          <div
-            key={`${x}-${y}`}
-            onClick={() => handleCellClick(x, y)}
-            style={{
-              width: `${cellSize}px`,
-              height: `${cellSize}px`,
-              backgroundColor: cell === "shot" ? "red" : "transparent",
-              border: "1px solid black",
-              boxSizing: "border-box",
-              cursor: playerCanShoot ? "pointer" : "not-allowed",
-            }}
-          />
-        ))
+        row.map((cell, x) => {
+          let backgroundColor = "transparent";
+          let cursor = "default";
+
+          if (boardType === "defense") {
+            if (cell === "ship") {
+              backgroundColor = "gray"; // Tu nave
+            } else if (cell === "hit") {
+              backgroundColor = "red"; // Tu nave ha sido impactada
+            } else if (cell === "miss") {
+              backgroundColor = "blue"; // Disparo fallido del oponente
+            }
+          } else if (boardType === "attack") {
+            if (cell === "hit") {
+              backgroundColor = "red"; // Impactaste al oponente
+            } else if (cell === "miss") {
+              backgroundColor = "blue"; // Disparo fallido al oponente
+            } else if (cell === "pending") {
+              backgroundColor = "yellow"; // Esperando confirmación
+            }
+            cursor = playerCanShoot ? "pointer" : "not-allowed";
+          }
+
+          return (
+            <div
+              key={`${x}-${y}`}
+              onClick={() => handleCellClick(x, y)}
+              style={{
+                width: `${cellSize}px`,
+                height: `${cellSize}px`,
+                backgroundColor,
+                border: "1px solid black",
+                boxSizing: "border-box",
+                cursor,
+              }}
+            />
+          );
+        })
       )}
     </div>
   );
