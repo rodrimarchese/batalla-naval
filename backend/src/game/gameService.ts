@@ -4,7 +4,7 @@ import { Game, GameStatus } from './game';
 import { convertToUserByData } from '../user/util';
 import { convertGames, convertToGame, mapStatusToDB } from './util';
 import { ApprovedGame, MessageSend, SendMessageType } from '../socket/types';
-import { sendMessageToUser } from '../index';
+import {sendMessageToUser, startGame} from '../index';
 import { CastedObject } from '../board/util';
 export async function saveGame(host: User, guest: User, status: GameStatus) {
   try {
@@ -75,10 +75,7 @@ export async function gameById(id: string) {
                 ),
                 host:host_id (
                     *
-                ) ,
-                currentTurnUser:current_turn_user_id (
-                    *
-                ) 
+                )
             `,
     )
     .eq('id', id)
@@ -91,7 +88,6 @@ export async function gameById(id: string) {
   }
   const host = convertToUserByData(data.host);
   const guest = convertToUserByData(data.guest);
-  const currentTurnUser = convertToUserByData(data.currentTurnUser);
 
   return convertToGame(
     data.id,
@@ -103,7 +99,6 @@ export async function gameById(id: string) {
     data.finished_at,
     data.current_turn_started_at,
     data.winner,
-    currentTurnUser,
   );
 }
 
@@ -118,10 +113,7 @@ export async function pendingGames(): Promise<Game[]> {
                 ),
                 host:host_id (
                     *
-                ),
-                currentTurnUser:current_turn_user_id (
-                    *
-                ) 
+                )
             `,
     )
     .eq('status', 'pending');
@@ -149,10 +141,7 @@ export async function chooseGame(possibleGuest: User, game: Game) {
                 ),
                 host:host_id (
                     *
-                ),
-                current_turn_user:current_turn_user_id (
-                    *
-                )  
+                )
             `,
     );
 
@@ -203,12 +192,12 @@ export async function startGameD(
     .update({
       status: GameStatus.Started,
       started_at: new Date().toISOString(),
-      current_turn_user_id: game.host?.id,
       current_turn_started_at: new Date().toISOString(),
     })
     .eq('id', game.id)
     .select('id');
 
+  startGame(game.id, game.host?.id, game.guest?.id);
   if (error) {
     throw new Error('Error fetching game from Superbase');
   }
@@ -253,10 +242,7 @@ export async function finishGame(game: Game, winner: User) {
                 ),
                 host:host_id (
                     *
-                ),
-                current_turn_user:current_turn_user_id (
-                    *
-                ) , 
+                )
             `,
     );
 

@@ -1,8 +1,7 @@
-// ActiveGame.js
 import React, { useEffect, useRef, useState } from "react";
 import { Button } from "antd";
 import ActiveGameBoard from "../components/ActiveGameBoard";
-//import backgroundMusic from "../assets/audio/backgroundMusic.wav";
+// import backgroundMusic from "../assets/audio/backgroundMusic.wav";
 import hitSound from "../assets/audio/hitSound.wav";
 import missSound from "../assets/audio/missSound.wav";
 
@@ -21,25 +20,30 @@ const ActiveGame = ({ gameData, sendMessage, userId }) => {
 
     const isPlayerTurn =
         gameData.status === "onGameYourTurn" || gameData.status === "onGameStarted";
-    //const audioRef = useRef(new Audio(backgroundMusic));
+
     const hitAudioRef = useRef(new Audio(hitSound));
     const missAudioRef = useRef(new Audio(missSound));
     const [previousMissedHits, setPreviousMissedHits] = useState(gameData.yourMissedHits.length);
+    const [timeRemaining, setTimeRemaining] = useState(25); // Temporizador inicializado con 20 segundos
 
-   /* useEffect(() => {
-        const audio = audioRef.current;
+    useEffect(() => {
+        if (isPlayerTurn) {
+            setTimeRemaining(25); // Reiniciar el temporizador cada vez que sea el turno del jugador
 
-        // Configuración del audio
-        audio.loop = true; // Para que la música de fondo se repita
-        audio.volume = 0.005; // Ajustar el volumen entre 0.0 y 1.0
-        audio.play();
+            const timer = setInterval(() => {
+                setTimeRemaining((prev) => {
+                    if (prev <= 1) {
+                        clearInterval(timer);
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
 
-        // Limpiar al desmontar el componente
-        return () => {
-            audio.pause();
-            audio.currentTime = 0;
-        };
-    }, []);*/
+            // Limpiar el temporizador cuando termine el turno o el componente se desmonte
+            return () => clearInterval(timer);
+        }
+    }, [isPlayerTurn]);
 
     useEffect(() => {
         if (gameData.status === "onGameWaiting") {
@@ -71,7 +75,14 @@ const ActiveGame = ({ gameData, sendMessage, userId }) => {
             </Button>
             <div className="text-center">
                 <h1 className="text-sm text-gray-500 mb-2">Partida ID: {gameData.id}</h1>
-                <h1 className={`text-lg font-bold mb-6 ${isPlayerTurn ? 'text-green-500' : 'text-red-500'}`}>{isPlayerTurn ? "Tu turno" : "Esperando al oponente"}</h1>
+                <h1 className={`text-lg font-bold mb-6 ${isPlayerTurn ? 'text-green-500' : 'text-red-500'}`}>
+                    {isPlayerTurn ? "Tu turno" : "Esperando al oponente"}
+                </h1>
+                {isPlayerTurn && (
+                    <div className="text-lg text-gray-700 mb-6">
+                        Tiempo restante: {timeRemaining} segundos
+                    </div>
+                )}
             </div>
             <div className="flex justify-between items-start">
                 <div className="flex flex-col items-center">

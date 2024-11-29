@@ -178,6 +178,95 @@ export function prepareAutoArrangeMessage(data: any) {
   return { gameId, ships };
 }
 
+//LOGICA DEL TIEMPO!
+interface GameTurnState {
+  gameId: string;
+  currentPlayerId: string | undefined;
+  turnStartedAt: number; // Timestamp para el momento en que empezó el turno
+  hostUserId: string | undefined; // ID del jugador host
+  guestUserId: string | undefined; // ID del jugador invitado
+}
+
+const gameTurnMap = new Map<string, GameTurnState>(); // Mapa para mantener el estado de cada juego
+
+export function startGame(
+  gameId: string,
+  hostUserId: string | undefined,
+  guestUserId: string | undefined,
+) {
+  gameTurnMap.set(gameId, {
+    gameId: gameId,
+    currentPlayerId: hostUserId,
+    turnStartedAt: Date.now(),
+    hostUserId: hostUserId,
+    guestUserId: guestUserId,
+  });
+}
+
+export function endGame(gameId: string) {
+  gameTurnMap.delete(gameId);
+}
+
+export function handlePlayerShot(gameId: string, userId: string): void {
+  const gameState = gameTurnMap.get(gameId);
+
+  if (!gameState) {
+    console.error(`Juego ${gameId} no encontrado en el mapa de turnos`);
+    return;
+  }
+
+  if (gameState.currentPlayerId !== userId) {
+    console.error(
+      `No es el turno del jugador ${userId} para el juego ${gameId}`,
+    );
+    return;
+  }
+
+  // Cambiar el turno al siguiente jugador y actualizar el turno
+  gameState.currentPlayerId =
+    gameState.currentPlayerId === gameState.hostUserId
+      ? gameState.guestUserId
+      : gameState.hostUserId;
+
+  gameState.turnStartedAt = Date.now();
+}
+
+setInterval(async () => {
+  try {
+    const currentTime = Date.now();
+
+    for (const gameState of gameTurnMap.values()) {
+      try {
+        const elapsedTime = (currentTime - gameState.turnStartedAt) / 1000; // Tiempo en segundos
+
+        if (elapsedTime > 20) {
+          console.log(
+            `Tiempo excedido para el juego ${gameState.gameId}, ejecutando AutoShot para ${gameState.currentPlayerId}...`,
+          );
+
+          if (gameState.currentPlayerId) {
+            // Generar movimiento automático
+            const movement = await generateUniqueMovement(
+              gameState.gameId,
+              gameState.currentPlayerId,
+            );
+
+            // Registrar el movimiento en la base de datos
+            await createMovement(gameState.currentPlayerId, movement);
+          }
+        }
+      } catch (gameProcessingError) {
+        console.error(
+          `Error processing game ${gameState.gameId}:`,
+          gameProcessingError,
+        );
+      }
+    }
+  } catch (globalError) {
+    console.error('Global error in interval:', globalError);
+  }
+}, 5000); // Verificar cada 5 segundos si algún turno ha excedido el límite de tiempo
+
 async function manageMessage(data: MessageSend) {
   if (data.type == SendMessageType.GameSetUp) {
     await addBoard(JSON.parse(data.message), data.userId);
@@ -194,7 +283,6 @@ async function manageMessage(data: MessageSend) {
   }
   if (data.type == SendMessageType.Shot) {
     await createMovement(data.userId, data.message);
-    await changeTurn(data.message.gameId);
   }
   if (data.type == SendMessageType.AutoShot) {
     const movement = await generateUniqueMovement(
@@ -202,112 +290,6 @@ async function manageMessage(data: MessageSend) {
       data.userId,
     );
     await createMovement(data.userId, movement);
-    await changeTurn(data.message.gameId);
-  }
-}
-
-setInterval(async () => {
-  const { data: games, error } = await supabase
-    .from('game')
-    .select('id, status, started_at, host_id, guest_id')
-    .eq('status', 'started');
-
-  if (error) {
-    console.error('Error fetching active games:', error);
-    return;
-  }
-
-  const currentTime = new Date().getTime();
-
-  for (const game of games) {
-    // Obtener los movimientos del juego
-    const { data: movements, error: movementsError } = await supabase
-      .from('movements')
-      .select('user_id, moved_at')
-      .eq('game_id', game.id);
-
-    if (movementsError) {
-      console.error(
-        `Error fetching movements for game ${game.id}:`,
-        movementsError,
-      );
-      continue;
-    }
-
-    let turnStartTime;
-    let currentTurnUserId;
-
-    if (movements.length === 0) {
-      // Si no hay movimientos, el turno inicial es del host
-      turnStartTime = new Date(game.started_at).getTime();
-      currentTurnUserId = game.host_id;
-    } else {
-      // Si ya hay movimientos, el último jugador en mover se determina
-      const sortedMovements = movements.sort(
-        (a, b) =>
-          new Date(b.moved_at).getTime() - new Date(a.moved_at).getTime(),
-      );
-      const lastMovement = sortedMovements[0];
-
-      turnStartTime = new Date(lastMovement.moved_at).getTime();
-      currentTurnUserId =
-        lastMovement.user_id === game.host_id ? game.guest_id : game.host_id;
-    }
-
-    const elapsedTime = (currentTime - turnStartTime) / 1000; // Tiempo en segundos
-
-    if (elapsedTime > 20) {
-      console.log(
-        `Turno excedido para el juego ${game.id}. Ejecutando AutoShot para ${currentTurnUserId}...`,
-      );
-
-      const movement = await generateUniqueMovement(game.id, currentTurnUserId);
-      await createMovement(currentTurnUserId, movement);
-    }
-  }
-}, 1000);
-
-async function changeTurn(gameId: string) {
-  try {
-    // Volver a buscar el juego con datos actualizados
-    const { data: game, error: gameError } = await supabase
-      .from('game')
-      .select('id, current_turn_user_id, host_id, guest_id')
-      .eq('id', gameId)
-      .single();
-
-    if (gameError || !game) {
-      console.error('Error fetching game data for changing turn:', gameError);
-      return;
-    }
-
-    let nextUserId;
-    if (game.current_turn_user_id === game.host_id) {
-      nextUserId = game.guest_id;
-    } else {
-      nextUserId = game.host_id;
-    }
-
-    console.log('ID del usuario actual del turno:', game.current_turn_user_id);
-    console.log('ID del próximo usuario del turno:', nextUserId);
-
-    const { error } = await supabase
-      .from('game')
-      .update({
-        current_turn_user_id: nextUserId,
-        current_turn_started_at: new Date().toISOString(),
-      })
-      .eq('id', game.id);
-
-    if (error) {
-      console.error('Error updating current turn user:', error);
-    } else {
-      console.log(
-        `Turno cambiado al jugador ${nextUserId} para el juego ${game.id}`,
-      );
-    }
-  } catch (e) {
-    console.error('Error al cambiar el turno:', e);
   }
 }
 

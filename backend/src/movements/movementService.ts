@@ -15,7 +15,7 @@ import { UUID } from 'crypto';
 import { convertToUserByData } from '../user/util';
 import { convertToGameByData } from '../game/util';
 import { MessageSend, SendMessageType } from '../socket/types';
-import { sendMessageToUser } from '../index';
+import {handlePlayerShot, sendMessageToUser} from '../index';
 
 export async function createMovement(userId: string, message: any) {
   try {
@@ -60,6 +60,7 @@ export async function createMovement(userId: string, message: any) {
           y,
           movement.id,
         );
+        handlePlayerShot(game.id, user.id);
         await sendMessageOfStatus(game, user);
       }
       if (error) {

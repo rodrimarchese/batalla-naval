@@ -59,8 +59,10 @@ export async function addMeToGame(req: Request, res: Response) {
   try {
     const body = req.body;
     const game = await gameById(body.gameId);
+    console.log('game ', game);
     const me = await userWithId(body.userId);
 
+    console.log('user ', me)
     const updatedGame = await chooseGame(me, game);
     return res.json({ message: 'Event received', yourData: updatedGame });
   } catch (error: any) {

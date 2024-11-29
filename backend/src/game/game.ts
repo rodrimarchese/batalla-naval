@@ -17,5 +17,4 @@ export type Game = {
   finishedAt: Date | null; // Fecha de finalización del juego
   currentTurnStartedAt: Date | null;
   winner: User | null;
-  currentTurnUser: User | null;
 };

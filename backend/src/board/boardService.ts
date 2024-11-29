@@ -11,7 +11,7 @@ import { convertToBoard, CastedObject, castBoardItems } from './util';
 import { finishGame, gameById, startGameD } from '../game/gameService';
 import { userWithId } from '../user/userService';
 import { MessageSend, SendMessageType } from '../socket/types';
-import { sendMessageToUser } from '../index';
+import { endGame, sendMessageToUser } from '../index';
 
 export async function addBoard(body: any, userId: string) {
   console.log('BODY ', body);
@@ -458,6 +458,7 @@ export async function sendMessageOfStatus(game: Game, user: User) {
 
     if (allDeads) {
       await finishGame(game, user);
+      endGame(game.id);
       const boardDeadOtherUser = await getBoardsDeadFromUser(game, otherUser);
       const boardForUser = await getBoardsForGameIdAndUserId(game, user);
       const messageUser: MessageSend = {
