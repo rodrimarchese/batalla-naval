@@ -19,7 +19,9 @@ import cors from 'cors';
 import { MessageSend, SendMessageType } from './socket/types';
 import { addBoard } from './board/boardService';
 import { createMovement } from './movements/movementService';
-import {autoArrangeShips} from "./board/autoPlay/boardAutoPlay";
+import { autoArrangeShips } from './board/autoPlay/boardAutoPlay';
+import { generateUniqueMovement } from './movements/shotAutoPlay';
+import { gameById } from './game/gameService';
 // Cargar variables de entorno
 process.loadEnvFile('.env.local');
 
@@ -170,22 +172,142 @@ async function saveMessage(messageSend: MessageSend, status: MessageStatus) {
 }
 
 export function prepareAutoArrangeMessage(data: any) {
-  const parsedMessage = JSON.parse(data.message);
-  const gameId = parsedMessage.gameId;
+  const gameId = data.gameId;
+  console.log('gameId ', gameId);
   const ships = autoArrangeShips();
   return { gameId, ships };
 }
-
 
 async function manageMessage(data: MessageSend) {
   if (data.type == SendMessageType.GameSetUp) {
     await addBoard(JSON.parse(data.message), data.userId);
   }
   if (data.type == SendMessageType.GameSetUpAutoPlay) {
-    await addBoard(prepareAutoArrangeMessage(data.message), data.userId);
+    const messageSend: MessageSend = {
+      userId: data.userId,
+      type: SendMessageType.AutoPlayResponse,
+      message: {
+        ships: prepareAutoArrangeMessage(data.message).ships,
+      },
+    };
+    await sendMessageToUser(messageSend);
   }
   if (data.type == SendMessageType.Shot) {
     await createMovement(data.userId, data.message);
+    await changeTurn(data.message.gameId);
+  }
+  if (data.type == SendMessageType.AutoShot) {
+    const movement = await generateUniqueMovement(
+      data.message.gameId,
+      data.userId,
+    );
+    await createMovement(data.userId, movement);
+    await changeTurn(data.message.gameId);
+  }
+}
+
+setInterval(async () => {
+  const { data: games, error } = await supabase
+    .from('game')
+    .select('id, status, started_at, host_id, guest_id')
+    .eq('status', 'started');
+
+  if (error) {
+    console.error('Error fetching active games:', error);
+    return;
+  }
+
+  const currentTime = new Date().getTime();
+
+  for (const game of games) {
+    // Obtener los movimientos del juego
+    const { data: movements, error: movementsError } = await supabase
+      .from('movements')
+      .select('user_id, moved_at')
+      .eq('game_id', game.id);
+
+    if (movementsError) {
+      console.error(
+        `Error fetching movements for game ${game.id}:`,
+        movementsError,
+      );
+      continue;
+    }
+
+    let turnStartTime;
+    let currentTurnUserId;
+
+    if (movements.length === 0) {
+      // Si no hay movimientos, el turno inicial es del host
+      turnStartTime = new Date(game.started_at).getTime();
+      currentTurnUserId = game.host_id;
+    } else {
+      // Si ya hay movimientos, el último jugador en mover se determina
+      const sortedMovements = movements.sort(
+        (a, b) =>
+          new Date(b.moved_at).getTime() - new Date(a.moved_at).getTime(),
+      );
+      const lastMovement = sortedMovements[0];
+
+      turnStartTime = new Date(lastMovement.moved_at).getTime();
+      currentTurnUserId =
+        lastMovement.user_id === game.host_id ? game.guest_id : game.host_id;
+    }
+
+    const elapsedTime = (currentTime - turnStartTime) / 1000; // Tiempo en segundos
+
+    if (elapsedTime > 20) {
+      console.log(
+        `Turno excedido para el juego ${game.id}. Ejecutando AutoShot para ${currentTurnUserId}...`,
+      );
+
+      const movement = await generateUniqueMovement(game.id, currentTurnUserId);
+      await createMovement(currentTurnUserId, movement);
+    }
+  }
+}, 1000);
+
+async function changeTurn(gameId: string) {
+  try {
+    // Volver a buscar el juego con datos actualizados
+    const { data: game, error: gameError } = await supabase
+      .from('game')
+      .select('id, current_turn_user_id, host_id, guest_id')
+      .eq('id', gameId)
+      .single();
+
+    if (gameError || !game) {
+      console.error('Error fetching game data for changing turn:', gameError);
+      return;
+    }
+
+    let nextUserId;
+    if (game.current_turn_user_id === game.host_id) {
+      nextUserId = game.guest_id;
+    } else {
+      nextUserId = game.host_id;
+    }
+
+    console.log('ID del usuario actual del turno:', game.current_turn_user_id);
+    console.log('ID del próximo usuario del turno:', nextUserId);
+
+    const { error } = await supabase
+      .from('game')
+      .update({
+        current_turn_user_id: nextUserId,
+        current_turn_started_at: new Date().toISOString(),
+      })
+      .eq('id', game.id);
+
+    if (error) {
+      console.error('Error updating current turn user:', error);
+    } else {
+      console.log(
+        `Turno cambiado al jugador ${nextUserId} para el juego ${game.id}`,
+      );
+    }
+  } catch (e) {
+    console.error('Error al cambiar el turno:', e);
   }
 }
 

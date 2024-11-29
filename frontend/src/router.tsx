@@ -9,6 +9,10 @@ import SignInPage from "./pages/SignIn";
 import SignUpPage from "./pages/SignUp";
 import AuthWrapper from "./AuthWrapper";
 import GamePage from "./pages/GamePage";
+import GameResultPage from "./pages/GameResultPage.tsx";
+
+
+
 
 export const router = createBrowserRouter([
   {

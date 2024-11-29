@@ -83,6 +83,16 @@ export async function addBoard(body: any, userId: string) {
           if (boardForGuest !== null && boardForHost !== null) {
             startGameD(game, boardForHost, boardForGuest);
           }
+        } else {
+          const messageSend: MessageSend = {
+            userId: userId,
+            type: SendMessageType.CorrectSettingUp,
+            message: {
+              boardDefined: boardDefined,
+            },
+          };
+          await sendMessageToUser(messageSend);
+          return;
         }
       }
     }
@@ -453,13 +463,13 @@ export async function sendMessageOfStatus(game: Game, user: User) {
       const messageUser: MessageSend = {
         userId: user.id,
         type: SendMessageType.finishGame,
-        message: JSON.stringify({
+        message: {
           deadPiecesOfTheOther: boardDeadOtherUser,
           boardStatus: boardForUser,
           winner: true,
           yourMissedHits: userMissedHits,
           rivalMissedHits: rivalMissedHits,
-        }),
+        },
       };
       sendMessageToUser(messageUser);
 
@@ -472,13 +482,13 @@ export async function sendMessageOfStatus(game: Game, user: User) {
       const messageOtherUser: MessageSend = {
         userId: otherUser.id,
         type: SendMessageType.finishGame,
-        message: JSON.stringify({
+        message: {
           deadPiecesOfTheOther: boardDeadUser,
           boardStatus: boardForOtherUser,
           winner: false,
           yourMissedHits: rivalMissedHits,
           rivalMissedHits: userMissedHits,
-        }),
+        },
       };
       sendMessageToUser(messageOtherUser);
     } else {
@@ -488,12 +498,12 @@ export async function sendMessageOfStatus(game: Game, user: User) {
       const messageUser: MessageSend = {
         userId: user.id,
         type: SendMessageType.onGameWaiting,
-        message: JSON.stringify({
+        message: {
           deadPiecesOfTheOther: boardDeadOtherUser,
           boardStatus: boardForUser,
           yourMissedHits: userMissedHits,
           rivalMissedHits: rivalMissedHits,
-        }),
+        },
       };
       sendMessageToUser(messageUser);
       const boardDeadUser = await getBoardsDeadFromUser(game, user);
@@ -505,12 +515,12 @@ export async function sendMessageOfStatus(game: Game, user: User) {
       const messageOtherUser: MessageSend = {
         userId: otherUser.id,
         type: SendMessageType.onGameYourTurn,
-        message: JSON.stringify({
+        message: {
           deadPiecesOfTheOther: boardDeadUser,
           boardStatus: boardForOtherUser,
           yourMissedHits: rivalMissedHits,
           rivalMissedHits: userMissedHits,
-        }),
+        },
       };
       sendMessageToUser(messageOtherUser);
     }

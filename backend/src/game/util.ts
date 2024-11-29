@@ -13,6 +13,7 @@ export function convertToGame(
   finishedAt: any,
   currentTurnStartedAt: any,
   winner: User | null,
+  currentTurnUser: User | null,
 ): Game {
   return {
     id,
@@ -26,6 +27,7 @@ export function convertToGame(
       ? new Date(currentTurnStartedAt)
       : null,
     winner: winner,
+    currentTurnUser: currentTurnUser,
   };
 }
 
@@ -55,6 +57,9 @@ export function convertGames(data: any[]): Game[] {
         ? new Date(gameData.current_turn_started_at)
         : null,
       winner: gameData.winner ? convertToUserByData(gameData.host) : null,
+      currentTurnUser: gameData.currentTurnUser
+        ? convertToUserByData(gameData.currentTurnUser)
+        : null,
     };
   });
 }
@@ -73,5 +78,8 @@ export function convertToGameByData(data: any): Game | null {
       ? new Date(data.current_turn_started_at)
       : null,
     winner: data.winner ? convertToUserByData(data.host) : null,
+    currentTurnUser: data.current_turn_user_id
+      ? convertToUserByData(data.current_turn_user_id)
+      : null,
   };
 }

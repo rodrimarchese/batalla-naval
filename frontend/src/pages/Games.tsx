@@ -59,12 +59,12 @@ const Games: React.FC = () => {
     const fetchGames = async () => {
       const data = await api.getGames();
       setGames(
-        data.map((game: Game) => ({
-          id: game.id,
-          hostName: game.host.name,
-          status: game.status,
-          createdAt: new Date(game.createdAt).toLocaleString(),
-        }))
+          data.map((game: Game) => ({
+            id: game.id,
+            hostName: game.host.name,
+            status: game.status === 'pending' ? 'Esperando oponente' : game.status,
+            createdAt: new Date(game.createdAt).toLocaleString(),
+          }))
       );
     };
 
@@ -129,28 +129,29 @@ const Games: React.FC = () => {
         console.log("Record:", record);
 
         return (
-          <Button onClick={() => joinGame(record.id)} type="primary">
-            Unirse
-          </Button>
+            <Button onClick={() => joinGame(record.id)} type="primary">
+              Unirse
+            </Button>
         );
       },
     },
   ];
 
   return (
-    <div>
-      <div className="flex flex-row justify-between mr-10">
-        <h1 className="m-5 font-bold text-3xl">Partidas</h1>
-        <Link to="/games/new">
-          <Button type="primary" className="mt-4">
-            Nueva partida
-          </Button>
-        </Link>
+      <div>
+        <div className="flex flex-row justify-between mr-10">
+          <h1 className="m-5 font-bold text-3xl">Partidas</h1>
+          <Link to="/games/new">
+            <Button type="primary" className="mt-4">
+              Nueva partida
+            </Button>
+          </Link>
+        </div>
+        <Table columns={columns} dataSource={games} pagination={false} />
+        <Outlet />
       </div>
-      <Table columns={columns} dataSource={games} pagination={false} />
-      <Outlet />
-    </div>
   );
 };
 
 export default Games;
+

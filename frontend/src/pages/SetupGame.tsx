@@ -1,21 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import DraggableBoat from "../components/DraggableBoat";
 import { Button } from "antd";
-
-interface UserData {
-  id: string;
-  name: string;
-  email: string;
-}
 
 const SetupGame = ({ gameData, sendMessage, userId }) => {
   console.log("gameData:", gameData);
 
-  const gridSize = 15; // 15x15 grid
-  const cellSize = 30; // Each cell is 30x30px
+  const gridSize = 15; // Cuadrícula de 15x15
+  const cellSize = 30; // Cada celda mide 30x30px
   const [ships, setShips] = useState([
     {
-      id: "Patroller",
+      id: "Patrullero",
       color: "red",
       positions: [
         { x: 0, y: 0 },
@@ -23,7 +17,7 @@ const SetupGame = ({ gameData, sendMessage, userId }) => {
       ], // Barco vertical de tamaño 2
     },
     {
-      id: "Submarine",
+      id: "Submarino",
       color: "blue",
       positions: [
         { x: 2, y: 0 },
@@ -32,7 +26,7 @@ const SetupGame = ({ gameData, sendMessage, userId }) => {
       ], // Barco horizontal de tamaño 3
     },
     {
-      id: "Destroyer",
+      id: "Destructor",
       color: "green",
       positions: [
         { x: 0, y: 3 },
@@ -42,7 +36,7 @@ const SetupGame = ({ gameData, sendMessage, userId }) => {
       ], // Barco horizontal de tamaño 4
     },
     {
-      id: "Battleship",
+      id: "Acorazado",
       color: "purple",
       positions: [
         { x: 3, y: 4 },
@@ -53,7 +47,7 @@ const SetupGame = ({ gameData, sendMessage, userId }) => {
       ], // Barco vertical de tamaño 5
     },
     {
-      id: "Carrier",
+      id: "Portaaviones",
       color: "orange",
       positions: [
         { x: 3, y: 2 },
@@ -65,13 +59,19 @@ const SetupGame = ({ gameData, sendMessage, userId }) => {
       ], // Barco horizontal
     },
   ]);
+  const [awaitingApproval, setAwaitingApproval] = useState(false);
 
-  // Función para comprobar si las nuevas posiciones son válidas
+  useEffect(() => {
+    if (gameData.ships) {
+      setShips(gameData.ships);
+    }
+  }, [gameData]);
+
   const checkPositionValid = (newPositions, otherShips) => {
     const occupied = new Set(
-      otherShips.flatMap((ship) =>
-        ship.positions.map((pos) => `${pos.x},${pos.y}`)
-      )
+        otherShips.flatMap((ship) =>
+            ship.positions.map((pos) => `${pos.x},${pos.y}`)
+        )
     );
     return newPositions.every((pos) => !occupied.has(`${pos.x},${pos.y}`));
   };
@@ -88,10 +88,10 @@ const SetupGame = ({ gameData, sendMessage, userId }) => {
 
       const newPositions = movingShip.positions.map((pos, index) => {
         if (movingShip.positions[0].x === movingShip.positions[1].x) {
-          // Vertical orientation
+          // Orientación vertical
           return { x: baseX, y: baseY + index };
         } else {
-          // Horizontal orientation
+          // Orientación horizontal
           return { x: baseX + index, y: baseY };
         }
       });
@@ -99,7 +99,7 @@ const SetupGame = ({ gameData, sendMessage, userId }) => {
       if (checkPositionValid(newPositions, otherShips)) {
         validMove = true;
         return prevShips.map((ship) =>
-          ship.id === id ? { ...ship, positions: newPositions } : ship
+            ship.id === id ? { ...ship, positions: newPositions } : ship
         );
       }
       return prevShips; // Si no es válido, no cambia los barcos
@@ -107,23 +107,13 @@ const SetupGame = ({ gameData, sendMessage, userId }) => {
     return validMove;
   };
 
-  // const logPositions = () => {
-  //   console.log(
-  //     "Current positions:",
-  //     ships.map((ship) => ({
-  //       id: ship.id,
-  //       positions: ship.positions,
-  //     }))
-  //   );
-  // };
-
   const sendShipSetup = () => {
     const shipData = ships.map((ship) => ({
       shipType: ship.id,
       positions: ship.positions,
     }));
 
-    console.log("Sending ship setup:", shipData);
+    console.log("Enviando configuración de barcos:", shipData);
 
     const message = {
       userId: userId,
@@ -137,51 +127,100 @@ const SetupGame = ({ gameData, sendMessage, userId }) => {
     sendMessage(JSON.stringify(message));
   };
 
+  const sendAutoPlayRequest = () => {
+    const message = {
+      userId: userId,
+      type: "settingUpAutoPlay",
+      message: {
+        gameId: gameData.id,
+      },
+    };
+
+    console.log("Enviando solicitud de autoPlay:", message);
+    sendMessage(JSON.stringify(message));
+    setAwaitingApproval(false);
+  };
+
   return (
-    <>
-      <div
-        className="relative border border-gray-800 bg-gray-50"
-        style={{
-          width: `${gridSize * cellSize}px`,
-          height: `${gridSize * cellSize}px`,
-          backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent ${
-            cellSize - 1
-          }px, #ccc ${cellSize - 1}px, #ccc ${cellSize}px),
+      <div className="flex flex-row items-start justify-center mt-8">
+        <div
+            className="relative border border-gray-800 bg-gray-50 mr-8"
+            style={{
+              width: `${gridSize * cellSize}px`,
+              height: `${gridSize * cellSize}px`,
+              backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent ${
+                  cellSize - 1
+              }px, #ccc ${cellSize - 1}px, #ccc ${cellSize}px),
                           repeating-linear-gradient(90deg, transparent, transparent ${
-                            cellSize - 1
-                          }px, #ccc ${cellSize - 1}px, #ccc ${cellSize}px)`,
-        }}
-      >
-        {ships.map((ship) => (
-          <DraggableBoat
-            key={ship.id}
-            id={ship.id}
-            positions={ship.positions}
-            color={ship.color}
-            cellSize={cellSize}
-            gridSize={gridSize}
-            onPositionChange={updateShipPosition}
-          />
-        ))}
-      </div>
-      <div className="ml-4">
-        <h2>Ship Positions:</h2>
-        <ul>
+                  cellSize - 1
+              }px, #ccc ${cellSize - 1}px, #ccc ${cellSize}px)`,
+            }}
+        >
           {ships.map((ship) => (
-            <li key={ship.id}>
-              <strong>{ship.id}:</strong>{" "}
-              {ship.positions.map((pos) => `(${pos.x}, ${pos.y})`).join(", ")}
-            </li>
+              <DraggableBoat
+                  key={`${ship.id}-${ship.positions[0].x}-${ship.positions[0].y}`} // Usar una clave única para forzar la re-renderización
+                  id={ship.id}
+                  positions={ship.positions}
+                  color={ship.color}
+                  cellSize={cellSize}
+                  gridSize={gridSize}
+                  onPositionChange={updateShipPosition}
+              />
           ))}
-        </ul>
+        </div>
+
+        <div className="ml-4 mt-4 flex flex-col items-start">
+          <h2>Posiciones de los barcos:</h2>
+          <ul>
+            {ships.map((ship) => (
+                <li key={ship.id}>
+                  <strong>{ship.id}:</strong>{" "}
+                  {ship.positions.map((pos) => `(${pos.x}, ${pos.y})`).join(", ")}
+                </li>
+            ))}
+          </ul>
+          <div className="flex justify-center mt-6">
+            <Button
+                type="primary"
+                style={{ backgroundColor: "#ff9800", borderColor: "#ff9800" }}
+                onClick={sendShipSetup}
+            >
+              Estoy listo
+            </Button>
+          </div>
+          <div className="flex justify-center mt-2">
+            <Button
+                type="default"
+                style={{ backgroundColor: "#4caf50", borderColor: "#4caf50" }}
+                onClick={sendAutoPlayRequest}
+            >
+              Generar autoPlay
+            </Button>
+          </div>
+          {awaitingApproval && (
+              <div className="flex justify-center mt-2">
+                <Button
+                    type="primary"
+                    style={{ backgroundColor: "#ff9800", borderColor: "#ff9800" }}
+                    onClick={sendShipSetup}
+                >
+                  Aceptar Configuración
+                </Button>
+                <Button
+                    type="default"
+                    style={{
+                      backgroundColor: "#f44336",
+                      borderColor: "#f44336",
+                      marginLeft: "10px",
+                    }}
+                    onClick={sendAutoPlayRequest}
+                >
+                  Regenerar
+                </Button>
+              </div>
+          )}
+        </div>
       </div>
-      <div>
-        <Button onClick={sendShipSetup}>Log positions</Button>
-      </div>
-      <div>
-        <Button onClick={sendShipSetup}>I'm ready</Button>
-      </div>
-    </>
   );
 };
 

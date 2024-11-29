@@ -30,7 +30,7 @@ export async function createMovement(userId: string, message: any) {
       const messageSend: MessageSend = {
         userId: userId,
         type: SendMessageType.ErrorMessage,
-        message: JSON.stringify({ error: 'The game is finished' }),
+        message: { error: 'The game is finished' },
       };
       await sendMessageToUser(messageSend);
     } else if (await checkIfCorrectTurn(user, game)) {
@@ -53,13 +53,6 @@ export async function createMovement(userId: string, message: any) {
       const movement = await movementById(id);
 
       if (movement.game !== null && movement.user !== null) {
-        const { data, error } = await supabase
-          .from('game')
-          .update({
-            current_turn_started_at: new Date().toISOString(),
-          })
-          .eq('id', game.id)
-          .select('id');
         await changeStatusOfPiece(
           movement.game,
           movement.user,
@@ -76,7 +69,7 @@ export async function createMovement(userId: string, message: any) {
       const messageSend: MessageSend = {
         userId: userId,
         type: SendMessageType.ErrorMessage,
-        message: JSON.stringify({ error: 'not your turn' }),
+        message: { error: 'not your turn' },
       };
       await sendMessageToUser(messageSend);
     }
@@ -84,9 +77,9 @@ export async function createMovement(userId: string, message: any) {
     const messageSend: MessageSend = {
       userId: userId,
       type: SendMessageType.ErrorMessage,
-      message: JSON.stringify({
+      message: {
         error: 'INVALID VALUE (game, user or coordinates)',
-      }),
+      },
     };
     await sendMessageToUser(messageSend);
   }

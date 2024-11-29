@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import GameLobby from "./GameLobby";
 import SetupGame from "./SetupGame";
 import ActiveGame from "./ActiveGame";
+import GameResultPage from "./GameResultPage";
 import { WebSocketClient } from "../components/WebSocketClient";
 import { useUser } from "@clerk/clerk-react";
 
@@ -12,7 +13,7 @@ export enum GameStatus {
   onGameWaiting = "onGameWaiting",
   onGameYourTurn = "onGameYourTurn",
   Started = "started",
-  Finished = "finished",
+  Finished = "finishGame",
 }
 
 interface ReceivedData {
@@ -32,99 +33,46 @@ const GamePage = () => {
   const [error, setError] = useState<string | null>(null);
   const sendMessageRef = useRef<(message: string) => void>(() => {});
 
-  // En GamePage.js
+
+
+
   const handleWebSocketMessage = useCallback((data: any) => {
     try {
-      const parsedData: ReceivedData =
-        typeof data === "string" ? JSON.parse(data) : data;
+      const parsedData: ReceivedData = typeof data === "string" ? JSON.parse(data) : data;
       console.log("Received message DATA:", parsedData);
-
-      // const messageContent = JSON.parse(parsedData.message);
-      // console.log("Received message POST DATA:", messageContent);
 
       const messageContent = parsedData.message;
 
-      // setGameData((prevData) => {
-      //   let updatedData = { ...prevData, status: parsedData.type };
+      if (parsedData.type === "autoPlayResponse" && messageContent) {
+        // Actualiza los barcos para el estado 'settingUp' si se recibe autoPlayResponse
+        setGameData((prevGameData) => ({
+          ...prevGameData,
+          ships: messageContent.ships,
+        }));
+      } else {
+        // Limpiar el `boardStatus` anidado
+        let updatedBoardStatus = messageContent.boardStatus?.boardStatus || messageContent.boardStatus;
 
-      //   // Actualizar boardStatus y deadPiecesOfTheOther si están presentes
-      //   if (messageContent.boardStatus) {
-      //     updatedData.boardStatus = messageContent.boardStatus;
-      //   }
+        // Crear el nuevo objeto `gameData` basado en el mensaje recibido
+        const newGameData = {
+          id: messageContent.boardStatus.gameId,
+          host: gameData?.host || null,
+          guest: gameData?.guest || null,
+          status: parsedData.type,
+          boardStatus: updatedBoardStatus,
+          deadPiecesOfTheOther: messageContent.deadPiecesOfTheOther || [],
+          yourMissedHits: messageContent.yourMissedHits || [],
+          rivalMissedHits: messageContent.rivalMissedHits || [],
+          winner: messageContent.winner !== undefined ? messageContent.winner : undefined,
+        };
 
-      //   if (messageContent.deadPiecesOfTheOther) {
-      //     updatedData.deadPiecesOfTheOther =
-      //       messageContent.deadPiecesOfTheOther;
-      //   }
-
-      //   // Manejar disparos del jugador
-      //   if (parsedData.type === "shotResult") {
-      //     const shotResult = {
-      //       x: messageContent.xCoordinate,
-      //       y: messageContent.yCoordinate,
-      //       result: messageContent.result, // "hit" o "miss"
-      //     };
-
-      //     updatedData.playerShots = [
-      //       ...(prevData.playerShots || []),
-      //       shotResult,
-      //     ];
-      //   }
-
-      //   // Manejar disparos del oponente
-      //   if (parsedData.type === "opponentShot") {
-      //     const opponentShot = {
-      //       x: messageContent.xCoordinate,
-      //       y: messageContent.yCoordinate,
-      //       result: messageContent.result, // "hit" o "miss"
-      //     };
-
-      //     updatedData.opponentShots = [
-      //       ...(prevData.opponentShots || []),
-      //       opponentShot,
-      //     ];
-      //   }
-
-      //   return updatedData;
-      // });
+        setGameData(newGameData);
+      }
     } catch (error) {
       console.error("Error parsing WebSocket message:", error);
     }
-  }, []);
+  }, [gameData]);
 
-  // const handleWebSocketMessage = useCallback((data: any) => {
-  //   try {
-  //     // 1. Verificar si 'data' es un string y parsearlo
-  //     const parsedData: ReceivedData =
-  //       typeof data === "string" ? JSON.parse(data) : data;
-  //     console.log("Received message DATA:", parsedData);
-
-  //     // 2. Parsear la propiedad 'message' que también es un string JSON
-  //     const message: MessageData = JSON.parse(parsedData.message);
-  //     console.log("Received message ACA:", message);
-
-  //     // 3. Actualizar el estado según el tipo y el status
-  //     // if (
-  //     //   parsedData.type === "onGameWaiting" ||
-  //     //   parsedData.type === "onGameYourTurn"
-  //     // ) {
-  //     setGameData((prevData) => ({
-  //       ...prevData,
-  //       status: parsedData.type,
-  //     }));
-  //     // }
-
-  //     // if (message.status) {
-  //     //   setGameData((prevData) => ({
-  //     //     ...prevData,
-  //     //     status: message.status,
-  //     //     // Puedes añadir otros campos aquí si es necesario
-  //     //   }));
-  //     // }
-  //   } catch (error) {
-  //     console.error("Error parsing WebSocket message:", error);
-  //   }
-  // }, []);
 
   // Use the sendMessage function from the ref
   const sendMessage = (message: any) => {
@@ -181,6 +129,10 @@ const GamePage = () => {
           userId={userId}
         />
       )}
+      {gameData.status == GameStatus.Finished && (
+          <GameResultPage gameData={gameData} />
+      )
+      }
     </>
   );
 };

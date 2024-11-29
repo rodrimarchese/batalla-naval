@@ -1,17 +1,23 @@
 interface ShipPosition {
-  shipType: string;
+  id: string;
+  color: string;
   positions: { x: number; y: number }[];
 }
 
-const BOARD_SIZE = 10;
+const BOARD_SIZE = 15;
 
-// Tipos de barcos y sus tamaños
-const SHIPS = [
-  { shipType: 'Carrier', size: 5 },
-  { shipType: 'Battleship', size: 4 },
-  { shipType: 'Cruiser', size: 3 },
-  { shipType: 'Submarine', size: 3 },
-  { shipType: 'Destroyer', size: 2 },
+// Tipos de barcos y sus tamaños, colores y orientaciones
+const SHIPS: {
+  id: string;
+  size: number;
+  color: string;
+  orientation: 'V' | 'H';
+}[] = [
+  { id: 'Patrullero', size: 2, color: 'red', orientation: 'V' },
+  { id: 'Submarino', size: 3, color: 'blue', orientation: 'H' },
+  { id: 'Destructor', size: 4, color: 'green', orientation: 'H' },
+  { id: 'Acorazado', size: 5, color: 'purple', orientation: 'V' },
+  { id: 'Portaaviones', size: 6, color: 'orange', orientation: 'H' },
 ];
 
 export function autoArrangeShips(): ShipPosition[] {
@@ -24,11 +30,12 @@ export function autoArrangeShips(): ShipPosition[] {
     let placed = false;
 
     while (!placed) {
-      // Generar una dirección aleatoria (horizontal o vertical)
-      const direction = Math.random() < 0.5 ? 'H' : 'V';
       // Generar una posición inicial aleatoria
       const startX = Math.floor(Math.random() * BOARD_SIZE);
       const startY = Math.floor(Math.random() * BOARD_SIZE);
+
+      // Usar la orientación predefinida para cada barco
+      const direction = ship.orientation;
 
       // Verificar si el barco cabe en la posición generada
       if (canPlaceShip(board, startX, startY, direction, ship.size)) {
@@ -37,10 +44,10 @@ export function autoArrangeShips(): ShipPosition[] {
         for (let i = 0; i < ship.size; i++) {
           const x = direction === 'H' ? startX + i : startX;
           const y = direction === 'V' ? startY + i : startY;
-          board[y][x] = ship.shipType;
+          board[y][x] = ship.id;
           positions.push({ x, y });
         }
-        ships.push({ shipType: ship.shipType, positions });
+        ships.push({ id: ship.id, color: ship.color, positions });
         placed = true;
       }
     }

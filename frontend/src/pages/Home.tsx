@@ -63,12 +63,12 @@ function Home() {
           },
         });
         if (!response.ok) {
-          throw new Error('Failed to fetch game history');
+          throw new Error('Error al obtener el historial de juegos');
         }
         const data = await response.json();
         setGameHistory(data.games);
       } catch (error) {
-        console.error('Error fetching game history:', error);
+        console.error('Error al obtener el historial de juegos:', error);
       }
     };
 
@@ -81,12 +81,12 @@ function Home() {
           },
         });
         if (!response.ok) {
-          throw new Error('Failed to fetch win/loss statistics');
+          throw new Error('Error al obtener las estadísticas de victorias/derrotas');
         }
         const data = await response.json();
         setWinLossStats(data);
       } catch (error) {
-        console.error('Error fetching win/loss statistics:', error);
+        console.error('Error al obtener las estadísticas de victorias/derrotas:', error);
       }
     };
 
@@ -99,12 +99,12 @@ function Home() {
           },
         });
         if (!response.ok) {
-          throw new Error('Failed to fetch accuracy statistics');
+          throw new Error('Error al obtener las estadísticas de precisión');
         }
         const data = await response.json();
         setAccuracyStats(data);
       } catch (error) {
-        console.error('Error fetching accuracy statistics:', error);
+        console.error('Error al obtener las estadísticas de precisión:', error);
       }
     };
 
@@ -117,12 +117,12 @@ function Home() {
           },
         });
         if (!response.ok) {
-          throw new Error('Failed to fetch average duration statistics');
+          throw new Error('Error al obtener la duración promedio de los juegos');
         }
         const data = await response.json();
         setAverageDurationStats(data);
       } catch (error) {
-        console.error('Error fetching average duration statistics:', error);
+        console.error('Error al obtener la duración promedio de los juegos:', error);
       }
     };
 
@@ -135,8 +135,8 @@ function Home() {
   }, [user]);
 
   const winLossData = [
-    { name: 'Wins', value: winLossStats?.totalWins || 0 },
-    { name: 'Losses', value: winLossStats?.totalLosses || 0 },
+    { name: 'Victorias', value: winLossStats?.totalWins || 0 },
+    { name: 'Derrotas', value: winLossStats?.totalLosses || 0 },
   ];
 
   const accuracyData = accuracyStats ? {
@@ -150,73 +150,85 @@ function Home() {
   return (
       <div className="flex w-full justify-center items-center h-screen overflow-hidden">
         <div>
-          <h1 className="text-3xl">Home</h1>
-          <p>Welcome to the home page</p>
-
+          <h1 className="text-4xl font-bold text-center mb-6">¡Bienvenido a Batalla Naval!</h1>
           <Link to="/games/new">
-            <Button type="primary" className="mt-4">
+            <Button type="primary" className="mb-8 block mx-auto">
               Nueva partida
             </Button>
           </Link>
 
           <div className="mt-8 flex justify-between items-start space-x-8">
-            <div>
-              <h2 className="text-2xl mb-4">Game Win/Loss Statistics</h2>
-              <PieChart width={300} height={220}>
-                <Pie
-                    data={winLossData}
-                    cx={150}
-                    cy={110}
-                    labelLine={false}
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="value"
-                >
-                  {winLossData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend layout="vertical" align="right" verticalAlign="top" wrapperStyle={{ right: -50 }} />
-              </PieChart>
-            </div>
-
-            {averageDurationStats && (
-                <Card className="w-80 text-center mt-8" title="Average Game Duration" bordered={false}>
-                  <p>Total Games: {averageDurationStats.totalGames}</p>
-                  <p>Average Duration: {averageDurationStats.averageDuration} seconds</p>
-                </Card>
+            {winLossStats && winLossStats.totalGames > 0 ? (
+                <div className="p-6 bg-white rounded shadow-md text-center flex flex-col items-center">
+                  <h2 className="text-2xl mb-4">Estadísticas de Victorias/Derrotas</h2>
+                  <PieChart width={300} height={220}>
+                    <Pie
+                        data={winLossData}
+                        cx={150}
+                        cy={110}
+                        labelLine={false}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                    >
+                      {winLossData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend layout="vertical" align="right" verticalAlign="top" wrapperStyle={{ right: -50 }} />
+                  </PieChart>
+                </div>
+            ) : (
+                <div className="p-6 bg-gray-100 rounded shadow-md text-center flex flex-col items-center">
+                  <p>No tienes partidas todavía</p>
+                </div>
             )}
 
-            {accuracyStats && (
-                <div>
-                  <h2 className="text-2xl mb-4">Accuracy Statistics</h2>
+            {averageDurationStats ? (
+                <Card className="w-80 text-center mt-8 p-6 bg-white rounded shadow-md flex flex-col items-center" title="Duración Promedio de los Juegos" bordered={false}>
+                  <p>Total de Partidas: {averageDurationStats.totalGames}</p>
+                  <p>Duración Promedio: {averageDurationStats.averageDuration} segundos</p>
+                </Card>
+            ) : (
+                <div className="p-6 bg-gray-100 rounded shadow-md text-center flex flex-col items-center">
+                  <p>No tienes duración promedio de juegos todavía</p>
+                </div>
+            )}
+
+            {accuracyStats && accuracyStats.totalShots > 0 ? (
+                <div className="p-6 bg-white rounded shadow-md text-center flex flex-col items-center">
+                  <h2 className="text-2xl mb-4">Estadísticas de Precisión</h2>
                   <Progress
                       type="circle"
                       percent={accuracyData.percent}
-                      format={(percent) => `${percent}% Accuracy`}
+                      format={(percent) => `${percent}% Precisión`}
                       width={200}
                   />
                   <div className="mt-4">
-                    <p>Total Shots: {accuracyData.totalShots}</p>
-                    <p>Total Hits: {accuracyData.totalHits}</p>
+                    <p>Total de Disparos: {accuracyData.totalShots}</p>
+                    <p>Total de Aciertos: {accuracyData.totalHits}</p>
                   </div>
+                </div>
+            ) : (
+                <div className="p-6 bg-gray-100 rounded shadow-md text-center flex flex-col items-center">
+                  <p>No tienes estadísticas de precisión todavía</p>
                 </div>
             )}
           </div>
 
-          {/* Game History Table */}
+          {/* Tabla de Historial de Juegos */}
           <div className="mt-4 max-h-64 overflow-y-auto relative">
-            <h2 className="text-2xl mb-4 sticky top-0 bg-white z-20">Game History</h2>
+            <h2 className="text-2xl mb-4 sticky top-0 bg-white z-20">Historial de Partidas</h2>
             <table className="table-auto w-full border-collapse border border-gray-300">
               <thead className="sticky top-[3rem] bg-white z-10">
               <tr>
-                <th className="border border-gray-300 px-4 py-2">Game ID</th>
-                <th className="border border-gray-300 px-4 py-2">Opponent</th>
-                <th className="border border-gray-300 px-4 py-2">Result</th>
-                <th className="border border-gray-300 px-4 py-2">Duration (seconds)</th>
-                <th className="border border-gray-300 px-4 py-2">Your Stats</th>
-                <th className="border border-gray-300 px-4 py-2">Opponent Stats</th>
+                <th className="border border-gray-300 px-4 py-2">ID de Partida</th>
+                <th className="border border-gray-300 px-4 py-2">Oponente</th>
+                <th className="border border-gray-300 px-4 py-2">Resultado</th>
+                <th className="border border-gray-300 px-4 py-2">Duración (segundos)</th>
+                <th className="border border-gray-300 px-4 py-2">Tus Estadísticas</th>
+                <th className="border border-gray-300 px-4 py-2">Estadísticas del Oponente</th>
               </tr>
               </thead>
               <tbody>
@@ -239,17 +251,19 @@ function Home() {
                       <td className="border border-gray-300 px-4 py-2">
                         {game.opponent.name} ({game.opponent.email})
                       </td>
-                      <td className="border border-gray-300 px-4 py-2">{game.result}</td>
+                      <td className="border border-gray-300 px-4 py-2" style={{ color: game.result === 'Lost' ? 'red' : game.result === 'Won' ? 'green' : 'inherit' }}>
+                        {game.result === 'Lost' ? 'Perdido' : game.result === 'Won' ? 'Ganado' : game.result}
+                      </td>
                       <td className="border border-gray-300 px-4 py-2">{game.duration}</td>
                       <td className="border border-gray-300 px-4 py-2">
-                        <div>Total Hits: {game.userEfficiency.totalHits}</div>
-                        <div>Total Misses: {game.userEfficiency.totalMisses}</div>
-                        <div>Hit Percentage: {userHitPercentage}%</div>
+                        <div>Total de Aciertos: {game.userEfficiency.totalHits}</div>
+                        <div>Total de Fallos: {game.userEfficiency.totalMisses}</div>
+                        <div>Porcentaje de Aciertos: {userHitPercentage}%</div>
                       </td>
                       <td className="border border-gray-300 px-4 py-2">
-                        <div>Total Hits: {game.opponentEfficiency.totalHits}</div>
-                        <div>Total Misses: {game.opponentEfficiency.totalMisses}</div>
-                        <div>Hit Percentage: {opponentHitPercentage}%</div>
+                        <div>Total de Aciertos: {game.opponentEfficiency.totalHits}</div>
+                        <div>Total de Fallos: {game.opponentEfficiency.totalMisses}</div>
+                        <div>Porcentaje de Aciertos: {opponentHitPercentage}%</div>
                       </td>
                     </tr>
                 );
