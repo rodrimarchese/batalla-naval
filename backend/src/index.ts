@@ -84,7 +84,6 @@ wss.on('connection', (ws: WebSocket) => {
         // Guardar la conexión con el userId específico
         userConnections.set(data.userId, ws);
 
-        await handleUserConnection(data.userId);
         await sendAllMessagesPending(data.userId);
       }
 
@@ -388,9 +387,8 @@ function isValidMessageSend(obj: any): obj is MessageSend {
 
 //
 
-//USER CONNECTED
-
-export async function handleUserConnection(userId: string) {
+//USER CONNECTED TODO
+export async function handleUserConnection(userId: string, gameId: string) {
   try {
     // Buscar el usuario y el juego en curso
     const user = await userWithId(userId);
@@ -399,7 +397,8 @@ export async function handleUserConnection(userId: string) {
       .from('game')
       .select('*')
       .or(`host_id.eq.${user.id},guest_id.eq.${user.id}`)
-      .eq('status', 'started');
+      .in('status', ['settingUp', 'finished', 'started'])
+      .eq('id', gameId);
 
     if (error) {
       console.error('Error al obtener juegos en curso:', error);
@@ -413,6 +412,14 @@ export async function handleUserConnection(userId: string) {
 
     // Asumir que solo hay un juego en curso, tomar el primero
     const game = ongoingGames[0];
+
+    // Si el juego está en 'settingUp', no hacemos nada
+    if (game.status === 'settingUp') {
+      console.log(
+        `El juego ${game.id} está en configuración. No se realizará ninguna acción.`,
+      );
+      return;
+    }
 
     // Obtener información sobre el estado del tablero
     let otherUser: User | null;
@@ -432,14 +439,23 @@ export async function handleUserConnection(userId: string) {
 
       let messageUser: MessageSend;
 
-      if (allDeads) {
+      if (
+        game.status === 'finished' ||
+        (game.status === 'started' && allDeads)
+      ) {
+        // En estado 'finished' o si 'allDeads' es true, determinar el ganador
+        const isWinner =
+          game.host_id === user.id
+            ? game.winner === 'host'
+            : game.winner === 'guest';
+
         messageUser = {
           userId: user.id,
           type: SendMessageType.finishGame,
           message: {
             deadPiecesOfTheOther: boardDeadOtherUser,
             boardStatus: boardForUser,
-            winner: true,
+            winner: isWinner,
             yourMissedHits: userMissedHits,
             rivalMissedHits: rivalMissedHits,
           },
@@ -463,7 +479,7 @@ export async function handleUserConnection(userId: string) {
         };
       }
 
-      await sendMessageToUser(messageUser);
+      return messageUser;
     }
   } catch (error) {
     console.error(`Error al manejar la conexión del usuario ${userId}:`, error);

@@ -1,18 +1,48 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, {useEffect, useRef, useState} from "react";
 import { Button } from "antd";
 import ActiveGameBoard from "../components/ActiveGameBoard";
-// import backgroundMusic from "../assets/audio/backgroundMusic.wav";
-import hitSound from "../assets/audio/hitSound.wav";
-import missSound from "../assets/audio/missSound.wav";
+import backgroundMusic from "../assets/audio/backgroundMusic.wav";
+import hitSound from '../assets/audio/hitSound.wav';
+import missSound from '../assets/audio/missSound.wav'
 import { useNavigate } from "react-router-dom";
-import gameLobby from "./GameLobby.tsx";
 
 const VITE_BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const ActiveGame = ({ gameData, sendMessage, userId }) => {
     const navigate = useNavigate();
 
-    const [previousStatus, setPreviousStatus] = useState(gameData.status); // Estado para almacenar el status anterior
+    const hitAudioRef = useRef(new Audio(hitSound));
+    const missAudioRef = useRef(new Audio(missSound));
+    const [previousMissedHits, setPreviousMissedHits] = useState(gameData.yourMissedHits.length);
+    const audioRef = useRef(new Audio(backgroundMusic));
+
+     useEffect(() => {
+        const audio = audioRef.current;
+        // Configuración del audio
+        audio.loop = true; // Para que la música de fondo se repita
+        audio.volume = 0.01; // Ajustar el volumen entre 0.0 y 1.0
+        audio.play();
+        // Limpiar al desmontar el componente
+        return () => {
+            audio.pause();
+            audio.currentTime = 0;
+        };
+    }, []);
+
+    useEffect(() => {
+        if (gameData.status === "onGameWaiting") {
+            // Comparar el estado actual de yourMissedHits con el estado anterior
+            if (gameData.yourMissedHits.length > previousMissedHits) {
+                missAudioRef.current.volume = 0.3;
+                missAudioRef.current.play();
+            } else if (gameData.yourMissedHits.length === previousMissedHits) {
+                hitAudioRef.current.volume = 0.05;
+                hitAudioRef.current.play();
+            }
+
+            setPreviousMissedHits(gameData.yourMissedHits.length);
+        }
+    }, [gameData]);
 
     const handleAutoShot = () => {
         const autoShotMessage = {
@@ -52,9 +82,6 @@ const ActiveGame = ({ gameData, sendMessage, userId }) => {
     const isPlayerTurn =
         gameData.status === "onGameYourTurn" || gameData.status === "onGameStarted";
 
-    const hitAudioRef = useRef(new Audio(hitSound));
-    const missAudioRef = useRef(new Audio(missSound));
-    const [previousMissedHits, setPreviousMissedHits] = useState(gameData.yourMissedHits.length);
     const [timeRemaining, setTimeRemaining] = useState(25); // Temporizador inicializado con 20 segundos
 
     useEffect(() => {
@@ -75,33 +102,6 @@ const ActiveGame = ({ gameData, sendMessage, userId }) => {
             return () => clearInterval(timer);
         }
     }, [isPlayerTurn]);
-
-
-    const [shotMade, setShotMade] = useState(false);
-
-    useEffect(() => {
-        // Esta lógica se ejecuta solo si realmente hiciste un disparo
-        if (shotMade) {
-            if (gameData.yourMissedHits.length > previousMissedHits) {
-                // Fallo: el número de disparos fallidos aumentó
-                missAudioRef.current.volume = 0.3;
-                missAudioRef.current.play();
-            } else {
-                // Acierto: el número de disparos fallidos no cambió, pero disparaste
-                hitAudioRef.current.volume = 0.05;
-                hitAudioRef.current.play();
-            }
-
-            // Actualizar el estado para reflejar la nueva cantidad de disparos fallidos
-            setPreviousMissedHits(gameData.yourMissedHits.length);
-
-            // Marcar que el disparo ha sido procesado
-            setShotMade(false);
-        }
-    }, [gameData.yourMissedHits.length]);
-
-
-
 
     console.log("[ActiveGame] gameData actual de este jugador:", gameData);
 
@@ -160,7 +160,6 @@ const ActiveGame = ({ gameData, sendMessage, userId }) => {
                         playerCanShoot={false} // No puedes disparar en tu propio tablero
                         sendMessage={sendMessage}
                         userId={userId}
-                        setShotMade={setShotMade}
                     />
                     <Button
                         type="primary"
@@ -192,7 +191,6 @@ const ActiveGame = ({ gameData, sendMessage, userId }) => {
                         playerCanShoot={isPlayerTurn}
                         sendMessage={sendMessage}
                         userId={userId}
-                        setShotMade={setShotMade}
                     />
                 </div>
             </div>

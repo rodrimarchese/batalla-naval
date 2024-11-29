@@ -9,7 +9,6 @@ const ActiveGameBoard = ({
                            playerCanShoot,
                            sendMessage,
                            userId,
-    setShotMade,
                          }) => {
   const [board, setBoard] = useState(
       Array(gridSize)
@@ -108,7 +107,6 @@ const ActiveGameBoard = ({
       },
     };
 
-    setShotMade(true);
     console.log(`Shot at: (${x}, ${y})`);
 
     // Enviar mensaje de disparo

@@ -11,7 +11,7 @@ import { GameStatus } from './game';
 import { mapStatusToDB } from './util';
 import { supabase } from '../db/supabase';
 import { userRoutes } from '../routes';
-import {endGame} from "../index";
+import { endGame, handleUserConnection } from '../index';
 
 // CREA JUEGO ENTRE 2 USUARIOS, con estado started
 export async function createGameWithUsers(req: Request, res: Response) {
@@ -109,6 +109,12 @@ export async function getUserGames(req: Request, res: Response) {
   }
 }
 
+export async function getActualGame(req: Request, res: Response) {
+  const { userId, gameId } = req.params;
+  const message = await handleUserConnection(userId, gameId);
+
+  return res.status(200).json(message);
+}
 // Abandonar un juego
 export async function abandonGame(req: Request, res: Response) {
   const { gameId, userId } = req.body;

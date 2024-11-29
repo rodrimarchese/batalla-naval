@@ -96,8 +96,10 @@ const GamePage = () => {
       }
     };
 
-    fetchGameData();
-  }, [gameId]);
+    if (!gameData) {
+      fetchGameData();
+    }
+  }, [gameId, gameData]);
 
   if (!gameData || !userId) return <div>Loading...</div>;
 

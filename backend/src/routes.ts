@@ -5,7 +5,7 @@ import {
   abandonGame,
   addMeToGame,
   createGameOpen,
-  createGameWithUsers,
+  createGameWithUsers, getActualGame,
   getAllPendingGames,
   getGame,
   getUserGames,
@@ -37,6 +37,8 @@ userRoutes.get('/sendMessages', sendMessages);
 userRoutes.put('/game/addMe', addMeToGame);
 
 userRoutes.get('/game/me/:userId', getUserGames);
+
+userRoutes.get('/game/actual/:userId/:gameId', getActualGame);
 
 userRoutes.post('/game/abandon', abandonGame);
 
