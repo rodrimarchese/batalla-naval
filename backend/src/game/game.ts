@@ -6,6 +6,7 @@ export enum GameStatus {
   SettingUp = 'settingUp',
   Started = 'started',
   Finished = 'finished',
+  Abandoned = 'abandoned',
 }
 export type Game = {
   id: UUID;

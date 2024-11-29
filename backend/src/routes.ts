@@ -2,11 +2,13 @@
 import { Router } from 'express';
 import { createUser, getUsers, getUser } from './user/userController';
 import {
+  abandonGame,
   addMeToGame,
   createGameOpen,
   createGameWithUsers,
   getAllPendingGames,
   getGame,
+  getUserGames,
 } from './game/gameController';
 
 import { sendMessages } from './message/controller';
@@ -33,6 +35,11 @@ userRoutes.get('/game/:id', getGame);
 userRoutes.get('/sendMessages', sendMessages);
 
 userRoutes.put('/game/addMe', addMeToGame);
+
+userRoutes.get('/game/me/:userId', getUserGames);
+
+userRoutes.post('/game/abandon', abandonGame);
+
 
 userRoutes.post('/board', addBoard);
 

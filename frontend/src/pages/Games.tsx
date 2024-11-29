@@ -28,9 +28,13 @@ if (!VITE_BACKEND_URL) {
 const api = {
   getGames: async () => {
     const response = await fetch(`${VITE_BACKEND_URL}/game/pending`);
-    console.log("Response:", response);
     const data = await response.json();
     return data.yourData;
+  },
+  getOnGoingGames: async (userId: string) => {
+    const response = await fetch(`${VITE_BACKEND_URL}/game/me/${userId}`);
+    const data = await response.json();
+    return data;
   },
   joinGame: async ({ userId, gameId }: { gameId: string; userId: string }) => {
     const response = await fetch(`${VITE_BACKEND_URL}/game/addMe`, {
@@ -49,27 +53,87 @@ const api = {
 };
 
 const Games: React.FC = () => {
-  const [games, setGames] = useState([]);
+  const [games, setGames] = useState<Game[]>([]);
+  const [ongoingGame, setOngoingGame] = useState<Game | null>(null);
   const { user } = useUser();
   const navigate = useNavigate();
 
-  console.log("Games:", games);
-
   useEffect(() => {
     const fetchGames = async () => {
-      const data = await api.getGames();
-      setGames(
-          data.map((game: Game) => ({
+      try {
+        // Fetch ongoing games for the user
+        const ongoingGamesData = user ? await api.getOnGoingGames(user.id) : null;
+        if (ongoingGamesData && ongoingGamesData.length > 0) {
+          const ongoingGameData = ongoingGamesData[0];
+          const ongoingGameNormalized: Game = {
+            id: ongoingGameData.id,
+            host: {
+              id: ongoingGameData.host_id,
+              name: ongoingGameData.host_id === user?.id ? "Host (Tú)" : "Host", // Mostrar "Tú" si es el usuario actual
+              email: "",
+              createdAt: "",
+              updatedAt: "",
+            },
+            guest: ongoingGameData.guest_id
+                ? {
+                  id: ongoingGameData.guest_id,
+                  name: ongoingGameData.guest_id === user?.id ? "Guest (Tú)" : "Guest", // Mostrar "Tú" si es el usuario actual
+                  email: "",
+                  createdAt: "",
+                  updatedAt: "",
+                }
+                : undefined,
+            status: ongoingGameData.status,
+            createdAt: ongoingGameData.created_at,
+          };
+          setOngoingGame(ongoingGameNormalized);
+        } else {
+          setOngoingGame(null);
+        }
+
+        // Fetch all games, including pending
+        const data = await api.getGames();
+
+        // Normalizar datos
+        const normalizedGames: Game[] = [
+          ...data.map((game: Game) => ({
             id: game.id,
-            hostName: game.host.name,
+            host: game.host,
+            guest: game.guest,
             status: game.status === 'pending' ? 'Esperando oponente' : game.status,
-            createdAt: new Date(game.createdAt).toLocaleString(),
-          }))
-      );
+            createdAt: game.createdAt,
+          })),
+          ...(ongoingGamesData?.map((game: any) => ({
+            id: game.id,
+            host: {
+              id: game.host_id,
+              name: game.host_id === user?.id ? "Host (Tú)" : "Host", // Mostrar "Tú" si es el usuario actual
+              email: "",
+              createdAt: "",
+              updatedAt: "",
+            },
+            guest: game.guest_id
+                ? {
+                  id: game.guest_id,
+                  name: game.guest_id === user?.id ? "Guest (Tú)" : "Guest", // Mostrar "Tú" si es el usuario actual
+                  email: "",
+                  createdAt: "",
+                  updatedAt: "",
+                }
+                : undefined,
+            status: game.status,
+            createdAt: game.created_at,
+          })) || []),
+        ];
+
+        setGames(normalizedGames);
+      } catch (error) {
+        console.error("Error fetching games:", error);
+      }
     };
 
     fetchGames();
-  }, []);
+  }, [user]);
 
   const joinGame = async (gameIdToSend: string) => {
     if (!user) {
@@ -80,15 +144,11 @@ const Games: React.FC = () => {
         userId: user.id,
         gameId: gameIdToSend,
       });
-      console.log("Data:", data);
-
       const gameId = data.yourData.id;
 
       if (gameId) {
         console.log("Game joined:", gameId);
-        // redirect to /game/:gameId
-        // ACA no quiero redirigir. quiero hacer que escuche el websocket.
-        // una vez que se conecta, directo lo redirijo a /game/:gameId con el juego en marcha
+        // Aquí escuchamos el websocket antes de redirigir
         navigate(`/game/${gameId}`);
       }
     } catch (error) {
@@ -97,15 +157,15 @@ const Games: React.FC = () => {
   };
 
   const columns = [
-    // {
-    //   title: "ID Partida",
-    //   dataIndex: "id",
-    //   key: "id",
-    // },
     {
       title: "Jugador",
-      dataIndex: "hostName",
+      dataIndex: "host",
       key: "hostName",
+      render: (host: User, record: Game) => (
+          <span style={{ color: host.id === user?.id ? "blue" : "black" }}>
+          {host.id === user?.id ? "Tú (Host)" : record.guest && record.guest.id === user?.id ? "Tú (Guest)" : host.name}
+        </span>
+      ),
     },
     {
       title: "Estado",
@@ -116,23 +176,34 @@ const Games: React.FC = () => {
       title: "Fecha",
       dataIndex: "createdAt",
       key: "createdAt",
+      render: (createdAt: string) => new Date(createdAt).toLocaleString(),
     },
     {
       title: "Acciones",
       key: "actions",
-      render: (record: {
-        id: string;
-        hostName: string;
-        status: string;
-        createdAt: string;
-      }) => {
-        console.log("Record:", record);
+      render: (record: Game) => {
+        // Verificar si el usuario ya está en el juego
+        const isUserInGame = record.host.id === user?.id || record.guest?.id === user?.id;
 
-        return (
-            <Button onClick={() => joinGame(record.id)} type="primary">
-              Unirse
-            </Button>
-        );
+        // Mostrar el botón "Volver" si el usuario ya está en un juego activo
+        if (ongoingGame && ongoingGame.id === record.id) {
+          return (
+              <Button onClick={() => navigate(`/game/${record.id}`)} type="default" style={{ backgroundColor: "#4caf50", borderColor: "#4caf50", color: "white" }}>
+                Volver
+              </Button>
+          );
+        }
+
+        // Mostrar el botón "Unirse" solo si el usuario no es parte del juego y el juego está pendiente
+        if (!isUserInGame && record.status === 'Esperando oponente') {
+          return (
+              <Button onClick={() => joinGame(record.id)} type="primary">
+                Unirse
+              </Button>
+          );
+        }
+
+        return null; // No mostrar nada si el usuario ya está en el juego o si el estado no es "Esperando oponente"
       },
     },
   ];
@@ -141,17 +212,17 @@ const Games: React.FC = () => {
       <div>
         <div className="flex flex-row justify-between mr-10">
           <h1 className="m-5 font-bold text-3xl">Partidas</h1>
+          {/* Deshabilitar el botón "Nueva partida" si hay un juego en curso */}
           <Link to="/games/new">
-            <Button type="primary" className="mt-4">
+            <Button type="primary" className="mt-4" disabled={!!ongoingGame}>
               Nueva partida
             </Button>
           </Link>
         </div>
-        <Table columns={columns} dataSource={games} pagination={false} />
+        <Table columns={columns} dataSource={games} pagination={false} rowKey="id" />
         <Outlet />
       </div>
   );
 };
 
 export default Games;
-

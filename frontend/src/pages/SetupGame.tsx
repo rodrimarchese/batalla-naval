@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from "react";
 import DraggableBoat from "../components/DraggableBoat";
 import { Button } from "antd";
+import { useNavigate } from "react-router-dom";
+
+const VITE_BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const SetupGame = ({ gameData, sendMessage, userId }) => {
+  const navigate = useNavigate();
   console.log("gameData:", gameData);
 
   const gridSize = 15; // Cuadrícula de 15x15
@@ -141,6 +145,29 @@ const SetupGame = ({ gameData, sendMessage, userId }) => {
     setAwaitingApproval(false);
   };
 
+  const abandonGame = async () => {
+    try {
+      const response = await fetch(`${VITE_BACKEND_URL}/game/abandon`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          gameId: gameData.id,
+          userId: userId,
+        }),
+      });
+
+      if (response.ok) {
+        navigate("/games");
+      } else {
+        console.error("Error al abandonar el juego");
+      }
+    } catch (error) {
+      console.error("Error al abandonar el juego:", error);
+    }
+  };
+
   return (
       <div className="flex flex-row items-start justify-center mt-8">
         <div
@@ -197,6 +224,15 @@ const SetupGame = ({ gameData, sendMessage, userId }) => {
               Generar autoPlay
             </Button>
           </div>
+          <div className="flex justify-center mt-2">
+            <Button
+                type="default"
+                style={{ backgroundColor: "#f44336", borderColor: "#f44336" }}
+                onClick={abandonGame}
+            >
+              Abandonar
+            </Button>
+          </div>
           {awaitingApproval && (
               <div className="flex justify-center mt-2">
                 <Button
@@ -225,3 +261,4 @@ const SetupGame = ({ gameData, sendMessage, userId }) => {
 };
 
 export default SetupGame;
+

@@ -4,8 +4,16 @@ import ActiveGameBoard from "../components/ActiveGameBoard";
 // import backgroundMusic from "../assets/audio/backgroundMusic.wav";
 import hitSound from "../assets/audio/hitSound.wav";
 import missSound from "../assets/audio/missSound.wav";
+import { useNavigate } from "react-router-dom";
+import gameLobby from "./GameLobby.tsx";
+
+const VITE_BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const ActiveGame = ({ gameData, sendMessage, userId }) => {
+    const navigate = useNavigate();
+
+    const [previousStatus, setPreviousStatus] = useState(gameData.status); // Estado para almacenar el status anterior
+
     const handleAutoShot = () => {
         const autoShotMessage = {
             userId: userId,
@@ -16,6 +24,29 @@ const ActiveGame = ({ gameData, sendMessage, userId }) => {
         };
         console.log("Enviando solicitud de AutoShot:", autoShotMessage);
         sendMessage(JSON.stringify(autoShotMessage));
+    };
+
+    const abandonGame = async () => {
+        try {
+            const response = await fetch(`${VITE_BACKEND_URL}/game/abandon`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    gameId: gameData.id,
+                    userId: userId,
+                }),
+            });
+
+            if (response.ok) {
+                navigate("/games");
+            } else {
+                console.error("Error al abandonar el juego");
+            }
+        } catch (error) {
+            console.error("Error al abandonar el juego:", error);
+        }
     };
 
     const isPlayerTurn =
@@ -45,21 +76,32 @@ const ActiveGame = ({ gameData, sendMessage, userId }) => {
         }
     }, [isPlayerTurn]);
 
+
+    const [shotMade, setShotMade] = useState(false);
+
     useEffect(() => {
-        if (gameData.status === "onGameWaiting") {
-            // Comparar el estado actual de yourMissedHits con el estado anterior
+        // Esta lógica se ejecuta solo si realmente hiciste un disparo
+        if (shotMade) {
             if (gameData.yourMissedHits.length > previousMissedHits) {
+                // Fallo: el número de disparos fallidos aumentó
                 missAudioRef.current.volume = 0.3;
                 missAudioRef.current.play();
-            } else if (gameData.yourMissedHits.length === previousMissedHits) {
+            } else {
+                // Acierto: el número de disparos fallidos no cambió, pero disparaste
                 hitAudioRef.current.volume = 0.05;
                 hitAudioRef.current.play();
             }
 
-            // Actualizar el estado anterior
+            // Actualizar el estado para reflejar la nueva cantidad de disparos fallidos
             setPreviousMissedHits(gameData.yourMissedHits.length);
+
+            // Marcar que el disparo ha sido procesado
+            setShotMade(false);
         }
-    }, [gameData]);
+    }, [gameData.yourMissedHits.length]);
+
+
+
 
     console.log("[ActiveGame] gameData actual de este jugador:", gameData);
 
@@ -68,6 +110,14 @@ const ActiveGame = ({ gameData, sendMessage, userId }) => {
             <Button
                 type="primary"
                 className="mb-4"
+                onClick={abandonGame}
+                style={{ alignSelf: 'flex-start', backgroundColor: "#f44336", borderColor: "#f44336" }}
+            >
+                Abandonar
+            </Button>
+            <Button
+                type="primary"
+                className="mb-4 ml-2"
                 onClick={() => window.history.back()}
                 style={{ alignSelf: 'flex-start' }}
             >
@@ -110,6 +160,7 @@ const ActiveGame = ({ gameData, sendMessage, userId }) => {
                         playerCanShoot={false} // No puedes disparar en tu propio tablero
                         sendMessage={sendMessage}
                         userId={userId}
+                        setShotMade={setShotMade}
                     />
                     <Button
                         type="primary"
@@ -141,6 +192,7 @@ const ActiveGame = ({ gameData, sendMessage, userId }) => {
                         playerCanShoot={isPlayerTurn}
                         sendMessage={sendMessage}
                         userId={userId}
+                        setShotMade={setShotMade}
                     />
                 </div>
             </div>
@@ -149,4 +201,3 @@ const ActiveGame = ({ gameData, sendMessage, userId }) => {
 };
 
 export default ActiveGame;
-

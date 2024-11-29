@@ -17,11 +17,18 @@ import { createClient } from '@supabase/supabase-js';
 import { userRoutes } from './routes';
 import cors from 'cors';
 import { MessageSend, SendMessageType } from './socket/types';
-import { addBoard } from './board/boardService';
+import {
+  addBoard,
+  checkAllPiecesDead,
+  getBoardsDeadFromUser,
+  getBoardsForGameIdAndUserId,
+} from './board/boardService';
 import { createMovement } from './movements/movementService';
 import { autoArrangeShips } from './board/autoPlay/boardAutoPlay';
 import { generateUniqueMovement } from './movements/shotAutoPlay';
 import { gameById } from './game/gameService';
+import { userWithId } from './user/userService';
+import { User } from './user/user';
 // Cargar variables de entorno
 process.loadEnvFile('.env.local');
 
@@ -67,6 +74,7 @@ wss.on('connection', (ws: WebSocket) => {
           message: 'Error persing',
         };
         await sendMessageToUser(messageSend);
+
         console.error('El mensaje parseado no es válido');
       }
       console.log(`Received message: ${message}`);
@@ -76,6 +84,7 @@ wss.on('connection', (ws: WebSocket) => {
         // Guardar la conexión con el userId específico
         userConnections.set(data.userId, ws);
 
+        await handleUserConnection(data.userId);
         await sendAllMessagesPending(data.userId);
       }
 
@@ -378,3 +387,121 @@ function isValidMessageSend(obj: any): obj is MessageSend {
  */
 
 //
+
+//USER CONNECTED
+
+export async function handleUserConnection(userId: string) {
+  try {
+    // Buscar el usuario y el juego en curso
+    const user = await userWithId(userId);
+
+    const { data: ongoingGames, error } = await supabase
+      .from('game')
+      .select('*')
+      .or(`host_id.eq.${user.id},guest_id.eq.${user.id}`)
+      .eq('status', 'started');
+
+    if (error) {
+      console.error('Error al obtener juegos en curso:', error);
+      return;
+    }
+
+    if (!ongoingGames || ongoingGames.length === 0) {
+      console.log(`No hay juegos en curso para el usuario ${user.id}`);
+      return;
+    }
+
+    // Asumir que solo hay un juego en curso, tomar el primero
+    const game = ongoingGames[0];
+
+    // Obtener información sobre el estado del tablero
+    let otherUser: User | null;
+    if (game.host_id === user.id) {
+      otherUser = await userWithId(game.guest_id);
+    } else {
+      otherUser = await userWithId(game.host_id);
+    }
+
+    if (otherUser) {
+      const allDeads = await checkAllPiecesDead(game, otherUser);
+      const userMissedHits = await getMissedHits(game.id, user.id);
+      const rivalMissedHits = await getMissedHits(game.id, otherUser.id);
+
+      const boardDeadOtherUser = await getBoardsDeadFromUser(game, otherUser);
+      const boardForUser = await getBoardsForGameIdAndUserId(game, user);
+
+      let messageUser: MessageSend;
+
+      if (allDeads) {
+        messageUser = {
+          userId: user.id,
+          type: SendMessageType.finishGame,
+          message: {
+            deadPiecesOfTheOther: boardDeadOtherUser,
+            boardStatus: boardForUser,
+            winner: true,
+            yourMissedHits: userMissedHits,
+            rivalMissedHits: rivalMissedHits,
+          },
+        };
+      } else {
+        // Determinar si es su turno o está esperando
+        const lastMovement = await getLastMovement(game.id);
+        const isUserTurn = !lastMovement || lastMovement.user_id !== user.id;
+
+        messageUser = {
+          userId: user.id,
+          type: isUserTurn
+            ? SendMessageType.onGameYourTurn
+            : SendMessageType.onGameWaiting,
+          message: {
+            deadPiecesOfTheOther: boardDeadOtherUser,
+            boardStatus: boardForUser,
+            yourMissedHits: userMissedHits,
+            rivalMissedHits: rivalMissedHits,
+          },
+        };
+      }
+
+      await sendMessageToUser(messageUser);
+    }
+  } catch (error) {
+    console.error(`Error al manejar la conexión del usuario ${userId}:`, error);
+  }
+}
+
+// Función auxiliar para obtener el último movimiento
+async function getLastMovement(gameId: string) {
+  const { data, error } = await supabase
+    .from('movements')
+    .select('*')
+    .eq('game_id', gameId)
+    .order('moved_at', { ascending: false })
+    .limit(1);
+
+  if (error) {
+    console.error('Error al obtener el último movimiento:', error);
+    return null;
+  }
+
+  return data && data.length > 0 ? data[0] : null;
+}
+
+async function getMissedHits(gameId: string, userId: string) {
+  const { data, error } = await supabase
+    .from('movements')
+    .select('x_coordinate, y_coordinate')
+    .eq('game_id', gameId)
+    .eq('user_id', userId)
+    .eq('hit', false);
+
+  if (error || !data) {
+    console.error('Error fetching missed hits:', error);
+    return [];
+  }
+
+  return data.map(movement => ({
+    x: movement.x_coordinate,
+    y: movement.y_coordinate,
+  }));
+}

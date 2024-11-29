@@ -8,6 +8,10 @@ import {
   saveGameWithOneUser,
 } from './gameService';
 import { GameStatus } from './game';
+import { mapStatusToDB } from './util';
+import { supabase } from '../db/supabase';
+import { userRoutes } from '../routes';
+import {endGame} from "../index";
 
 // CREA JUEGO ENTRE 2 USUARIOS, con estado started
 export async function createGameWithUsers(req: Request, res: Response) {
@@ -37,7 +41,10 @@ export async function createGameOpen(req: Request, res: Response) {
     const game = await saveGameWithOneUser(host, GameStatus.Pending);
     return res.json({ message: 'Event received', yourData: game });
   } catch (error: any) {
-    if (error.message === 'User not found') {
+    if (
+      error.message === 'User not found' ||
+      error.message === 'User already has a game in pending or started status'
+    ) {
       return res.status(404).json({ error: error.message });
     }
     return res.status(500).json({ message: 'Error saving game' });
@@ -59,14 +66,80 @@ export async function addMeToGame(req: Request, res: Response) {
   try {
     const body = req.body;
     const game = await gameById(body.gameId);
-    console.log('game ', game);
     const me = await userWithId(body.userId);
 
-    console.log('user ', me)
     const updatedGame = await chooseGame(me, game);
     return res.json({ message: 'Event received', yourData: updatedGame });
   } catch (error: any) {
+    if (
+      error.message == 'User already has a game in pending or started status'
+    ) {
+      return res.status(404).json({
+        message: 'User already has a game in pending or started status',
+      });
+    }
     return res.status(500).json({ message: 'Error updating game' });
+  }
+}
+
+// Obtener juegos en "pending" y "started" de un usuario
+export async function getUserGames(req: Request, res: Response) {
+  const { userId } = req.params;
+
+  console.log('user id', userId);
+  try {
+    const { data: games, error } = await supabase
+      .from('game')
+      .select('*')
+      .or(`host_id.eq.${userId},guest_id.eq.${userId}`)
+      .in('status', [
+        mapStatusToDB(GameStatus.Pending),
+        mapStatusToDB(GameStatus.Started),
+        mapStatusToDB(GameStatus.SettingUp),
+      ]);
+
+    console.log(games);
+    if (error) {
+      return res.status(500).json({ message: 'Error fetching user games' });
+    }
+
+    return res.status(200).json(games);
+  } catch (err) {
+    return res.status(500).json({ message: 'Unexpected error' });
+  }
+}
+
+// Abandonar un juego
+export async function abandonGame(req: Request, res: Response) {
+  const { gameId, userId } = req.body;
+
+  try {
+    const game = await gameById(gameId);
+
+    if (!game) {
+      return res.status(404).json({ message: 'Game not found' });
+    }
+
+    // Verificar que el usuario es parte del juego
+    if (game.host?.id !== userId && game.guest?.id !== userId) {
+      return res.status(403).json({ message: 'User not part of the game' });
+    }
+
+    const { error } = await supabase
+      .from('game')
+      .update({
+        status: GameStatus.Abandoned,
+      })
+      .eq('id', gameId);
+
+    if (error) {
+      return res.status(500).json({ message: 'Error abandoning game' });
+    }
+
+    endGame(gameId);
+    return res.status(200).json({ message: 'Game abandoned successfully' });
+  } catch (err) {
+    return res.status(500).json({ message: 'Unexpected error' });
   }
 }
 

@@ -4,7 +4,7 @@ import { Game, GameStatus } from './game';
 import { convertToUserByData } from '../user/util';
 import { convertGames, convertToGame, mapStatusToDB } from './util';
 import { ApprovedGame, MessageSend, SendMessageType } from '../socket/types';
-import {sendMessageToUser, startGame} from '../index';
+import { sendMessageToUser, startGame } from '../index';
 import { CastedObject } from '../board/util';
 export async function saveGame(host: User, guest: User, status: GameStatus) {
   try {
@@ -37,6 +37,19 @@ export async function saveGame(host: User, guest: User, status: GameStatus) {
 
 export async function saveGameWithOneUser(host: User, status: GameStatus) {
   try {
+    const { data: existingGames, error: existingGamesError } = await supabase
+      .from('game')
+      .select('id, status')
+      .eq('host_id', host.id)
+      .in('status', [
+        mapStatusToDB(GameStatus.Pending),
+        mapStatusToDB(GameStatus.Started),
+      ]);
+
+    if (existingGames && existingGames.length > 0) {
+      throw new Error('User already has a game in pending or started status');
+    }
+
     const possibleGame = {
       status: mapStatusToDB(status),
       host_id: host.id,
@@ -58,7 +71,12 @@ export async function saveGameWithOneUser(host: User, status: GameStatus) {
     }
 
     return game;
-  } catch (error) {
+  } catch (error: any) {
+    if (
+      error.message === 'User already has a game in pending or started status'
+    ) {
+      throw new Error('User already has a game in pending or started status');
+    }
     throw new Error('Error inserting game in database');
   }
 }
@@ -126,6 +144,19 @@ export async function pendingGames(): Promise<Game[]> {
 }
 
 export async function chooseGame(possibleGuest: User, game: Game) {
+  const { data: existingGames, error: existingGamesError } = await supabase
+    .from('game')
+    .select('id, status')
+    .or(`guest_id.eq.${possibleGuest.id},host_id.eq.${possibleGuest.id}`)
+    .in('status', [
+      mapStatusToDB(GameStatus.Pending),
+      mapStatusToDB(GameStatus.Started),
+    ]);
+
+  if (existingGames && existingGames.length > 0) {
+    throw new Error('User already has a game in pending or started status');
+  }
+
   const { data, error } = await supabase
     .from('game')
     .update({

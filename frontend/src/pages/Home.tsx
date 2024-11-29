@@ -52,8 +52,34 @@ function Home() {
   const [accuracyStats, setAccuracyStats] = useState<AccuracyStats | null>(null);
   const [averageDurationStats, setAverageDurationStats] = useState<AverageDurationStats | null>(null);
   const { user } = useUser();
+  const [ongoingGame, setOngoingGame] = useState<Game | null>(null); // Estado para el juego en curso
 
   useEffect(() => {
+    const fetchUserGames = async () => {
+      try {
+        const response = await fetch(`${VITE_BACKEND_URL}/game/me/${user?.id}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        if (!response.ok) {
+          throw new Error('Error al obtener los juegos del usuario');
+        }
+        const data = await response.json();
+
+        // Si hay un juego pendiente o iniciado, lo almacenamos en el estado
+        if (data && data.length > 0) {
+          setOngoingGame(data[0]);
+        } else {
+          setOngoingGame(null);
+        }
+      } catch (error) {
+        console.error('Error al obtener los juegos del usuario:', error);
+      }
+    };
+
+
     const fetchGameHistory = async () => {
       try {
         const response = await fetch(`${VITE_BACKEND_URL}/statistics/history/${user?.id}`, {
@@ -127,6 +153,7 @@ function Home() {
     };
 
     if (user) {
+      fetchUserGames();
       fetchGameHistory();
       fetchWinLossStats();
       fetchAccuracyStats();
@@ -151,11 +178,20 @@ function Home() {
       <div className="flex w-full justify-center items-center h-screen overflow-hidden">
         <div>
           <h1 className="text-4xl font-bold text-center mb-6">¡Bienvenido a Batalla Naval!</h1>
-          <Link to="/games/new">
-            <Button type="primary" className="mb-8 block mx-auto">
-              Nueva partida
-            </Button>
-          </Link>
+          {/* Si hay un juego pendiente, mostramos el botón para continuar, de lo contrario, mostramos el botón para crear un nuevo juego */}
+          {ongoingGame ? (
+              <Link to={`/game/${ongoingGame.id}`}>
+                <Button type="primary" className="mb-8 block mx-auto">
+                  Continuar Partida
+                </Button>
+              </Link>
+          ) : (
+              <Link to="/games/new">
+                <Button type="primary" className="mb-8 block mx-auto">
+                  Nueva partida
+                </Button>
+              </Link>
+          )}
 
           <div className="mt-8 flex justify-between items-start space-x-8">
             {winLossStats && winLossStats.totalGames > 0 ? (
