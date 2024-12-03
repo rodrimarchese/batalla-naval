@@ -37,9 +37,9 @@ const server: HTTPServer = new HTTPServer(app);
 const wss: WebSocketServer = new WebSocketServer({ server });
 app.use(
   cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Permitir todos los métodos
-    allowedHeaders: ['Content-Type', 'Authorization'], // Permitir todos los encabezados necesarios
+    origin: 'https://battleship-front.alpha.hosting.ltmsoftware.com', // Tu dominio frontend
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type'],
   }),
 );
 
