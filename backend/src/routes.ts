@@ -5,7 +5,8 @@ import {
   abandonGame,
   addMeToGame,
   createGameOpen,
-  createGameWithUsers, getActualGame,
+  createGameWithUsers,
+  getActualGame,
   getAllPendingGames,
   getGame,
   getUserGames,
@@ -20,7 +21,19 @@ import {
   getUserGameHistory,
   getWinLossStats,
 } from './stadistics/statisticsController';
+import cors from 'cors';
 export const userRoutes = Router();
+
+// disable cors for this routes
+userRoutes.use(
+  cors({
+    origin: '*',
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type'],
+  }),
+);
+
+userRoutes.options('*', cors());
 
 userRoutes.post('/createUser', createUser);
 
@@ -41,7 +54,6 @@ userRoutes.get('/game/me/:userId', getUserGames);
 userRoutes.get('/game/actual/:userId/:gameId', getActualGame);
 
 userRoutes.post('/game/abandon', abandonGame);
-
 
 userRoutes.post('/board', addBoard);
 
