@@ -9,11 +9,10 @@ if (!PUBLISHABLE_KEY) {
 }
 
 export default function RootLayout() {
-  const navigate = useNavigate();
 
   return (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    <ClerkProvider navigate={navigate} publishableKey={PUBLISHABLE_KEY}>
+    <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
       <header className="bg-blue-700 text-white py-4">
         <div className=" px-4 flex justify-between items-center">
           <div>

@@ -237,7 +237,7 @@ function Home() {
                   <h2 className="text-2xl mb-4">Estadísticas de Precisión</h2>
                   <Progress
                       type="circle"
-                      percent={accuracyData.percent}
+                      percent={+accuracyData.percent}
                       format={(percent) => `${percent}% Precisión`}
                       width={200}
                   />
