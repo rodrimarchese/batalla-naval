@@ -27,9 +27,9 @@ export const userRoutes = Router();
 // disable cors for this routes
 userRoutes.use(
   cors({
-    origin: '*',
-    methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type'],
+    origin: '*', // Permitir todos los orígenes
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Permitir todos los métodos
+    allowedHeaders: ['Content-Type', 'Authorization'], // Permitir todos los encabezados necesarios
   }),
 );
 
