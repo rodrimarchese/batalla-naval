@@ -30,7 +30,7 @@ import { gameById } from './game/gameService';
 import { userWithId } from './user/userService';
 import { User } from './user/user';
 // Cargar variables de entorno
-process.loadEnvFile('.env.local');
+process.loadEnvFile();
 
 const app: Application = express();
 const server: HTTPServer = new HTTPServer(app);

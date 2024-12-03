@@ -1,7 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // Cargar variables de entorno. necesitas node 22 o superior para que ande esto.. sino bajate dotenv jaja
-process.loadEnvFile('.env.local');
+process.loadEnvFile();
 
 // Configuración del cliente
 const supabaseUrl: string = process.env.SUPABASE_URL as string;
