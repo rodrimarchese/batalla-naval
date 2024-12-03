@@ -35,7 +35,13 @@ process.loadEnvFile('.env.local');
 const app: Application = express();
 const server: HTTPServer = new HTTPServer(app);
 const wss: WebSocketServer = new WebSocketServer({ server });
-app.use(cors());
+app.use(
+  cors({
+    origin: '*', // Permitir todos los orígenes
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Permitir todos los métodos
+    allowedHeaders: ['Content-Type', 'Authorization'], // Permitir todos los encabezados necesarios
+  }),
+);
 
 const port: number = parseInt(process.env.PORT as string, 10) || 8080;
 
