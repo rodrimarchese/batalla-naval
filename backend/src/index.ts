@@ -37,7 +37,7 @@ const server: HTTPServer = new HTTPServer(app);
 const wss: WebSocketServer = new WebSocketServer({ server });
 app.use(
   cors({
-    origin: '*', // Permitir todos los orígenes
+    origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Permitir todos los métodos
     allowedHeaders: ['Content-Type', 'Authorization'], // Permitir todos los encabezados necesarios
   }),
