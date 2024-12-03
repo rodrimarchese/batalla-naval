@@ -37,11 +37,13 @@ const server: HTTPServer = new HTTPServer(app);
 const wss: WebSocketServer = new WebSocketServer({ server });
 app.use(
   cors({
-    origin: 'battleship-front.alpha.hosting.ltmsoftware.com',
+    origin: '*', // Esto permitirá solicitudes desde cualquier dominio (solo para pruebas)
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type'],
   }),
 );
+
+app.options('*', cors());
 
 const port: number = parseInt(process.env.PORT as string, 10) || 8080;
 
