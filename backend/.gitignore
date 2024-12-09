@@ -3,4 +3,4 @@ node_modules
 .env.local
 # Ignorar archivos .DS_Store en repositorios Git
 .DS_Store
-
+.env

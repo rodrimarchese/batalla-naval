@@ -53,7 +53,7 @@ const GameLobby: React.FC<Props> = ({ gameData }) => {
                 </Link>
                 <button
                     onClick={abandonGame}
-                    className="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-700"
+                    className="mt-7 mb-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-700"
                 >
                     Abandonar
                 </button>

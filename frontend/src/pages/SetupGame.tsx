@@ -8,6 +8,7 @@ const VITE_BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 const SetupGame = ({ gameData, sendMessage, userId }) => {
   const navigate = useNavigate();
   console.log("gameData:", gameData);
+  const [isReady, setIsReady] = useState(false);
 
   const gridSize = 15; // Cuadrícula de 15x15
   const cellSize = 30; // Cada celda mide 30x30px
@@ -73,9 +74,9 @@ const SetupGame = ({ gameData, sendMessage, userId }) => {
 
   const checkPositionValid = (newPositions, otherShips) => {
     const occupied = new Set(
-        otherShips.flatMap((ship) =>
-            ship.positions.map((pos) => `${pos.x},${pos.y}`)
-        )
+      otherShips.flatMap((ship) =>
+        ship.positions.map((pos) => `${pos.x},${pos.y}`)
+      )
     );
     return newPositions.every((pos) => !occupied.has(`${pos.x},${pos.y}`));
   };
@@ -103,7 +104,7 @@ const SetupGame = ({ gameData, sendMessage, userId }) => {
       if (checkPositionValid(newPositions, otherShips)) {
         validMove = true;
         return prevShips.map((ship) =>
-            ship.id === id ? { ...ship, positions: newPositions } : ship
+          ship.id === id ? { ...ship, positions: newPositions } : ship
         );
       }
       return prevShips; // Si no es válido, no cambia los barcos
@@ -112,6 +113,7 @@ const SetupGame = ({ gameData, sendMessage, userId }) => {
   };
 
   const sendShipSetup = () => {
+    setIsReady(true);
     const shipData = ships.map((ship) => ({
       shipType: ship.id,
       positions: ship.positions,
@@ -169,96 +171,101 @@ const SetupGame = ({ gameData, sendMessage, userId }) => {
   };
 
   return (
-      <div className="flex flex-row items-start justify-center mt-8">
-        <div
-            className="relative border border-gray-800 bg-gray-50 mr-8"
-            style={{
-              width: `${gridSize * cellSize}px`,
-              height: `${gridSize * cellSize}px`,
-              backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent ${
-                  cellSize - 1
-              }px, #ccc ${cellSize - 1}px, #ccc ${cellSize}px),
+    <div className="flex flex-row items-start justify-center mt-8">
+      <div
+        className="relative border border-gray-800 bg-gray-50 mr-8"
+        style={{
+          width: `${gridSize * cellSize}px`,
+          height: `${gridSize * cellSize}px`,
+          backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent ${
+            cellSize - 1
+          }px, #ccc ${cellSize - 1}px, #ccc ${cellSize}px),
                           repeating-linear-gradient(90deg, transparent, transparent ${
-                  cellSize - 1
-              }px, #ccc ${cellSize - 1}px, #ccc ${cellSize}px)`,
-            }}
-        >
-          {ships.map((ship) => (
-              <DraggableBoat
-                  key={`${ship.id}-${ship.positions[0].x}-${ship.positions[0].y}`} // Usar una clave única para forzar la re-renderización
-                  id={ship.id}
-                  positions={ship.positions}
-                  color={ship.color}
-                  cellSize={cellSize}
-                  gridSize={gridSize}
-                  onPositionChange={updateShipPosition}
-              />
-          ))}
-        </div>
-
-        <div className="ml-4 mt-4 flex flex-col items-start">
-          <h2>Posiciones de los barcos:</h2>
-          <ul>
-            {ships.map((ship) => (
-                <li key={ship.id}>
-                  <strong>{ship.id}:</strong>{" "}
-                  {ship.positions.map((pos) => `(${pos.x}, ${pos.y})`).join(", ")}
-                </li>
-            ))}
-          </ul>
-          <div className="flex justify-center mt-6">
-            <Button
-                type="primary"
-                style={{ backgroundColor: "#ff9800", borderColor: "#ff9800" }}
-                onClick={sendShipSetup}
-            >
-              Estoy listo
-            </Button>
-          </div>
-          <div className="flex justify-center mt-2">
-            <Button
-                type="default"
-                style={{ backgroundColor: "#4caf50", borderColor: "#4caf50" }}
-                onClick={sendAutoPlayRequest}
-            >
-              Generar autoPlay
-            </Button>
-          </div>
-          <div className="flex justify-center mt-2">
-            <Button
-                type="default"
-                style={{ backgroundColor: "#f44336", borderColor: "#f44336" }}
-                onClick={abandonGame}
-            >
-              Abandonar
-            </Button>
-          </div>
-          {awaitingApproval && (
-              <div className="flex justify-center mt-2">
-                <Button
-                    type="primary"
-                    style={{ backgroundColor: "#ff9800", borderColor: "#ff9800" }}
-                    onClick={sendShipSetup}
-                >
-                  Aceptar Configuración
-                </Button>
-                <Button
-                    type="default"
-                    style={{
-                      backgroundColor: "#f44336",
-                      borderColor: "#f44336",
-                      marginLeft: "10px",
-                    }}
-                    onClick={sendAutoPlayRequest}
-                >
-                  Regenerar
-                </Button>
-              </div>
-          )}
-        </div>
+                            cellSize - 1
+                          }px, #ccc ${cellSize - 1}px, #ccc ${cellSize}px)`,
+        }}
+      >
+        {ships.map((ship) => (
+          <DraggableBoat
+            key={`${ship.id}-${ship.positions[0].x}-${ship.positions[0].y}`} // Usar una clave única para forzar la re-renderización
+            id={ship.id}
+            positions={ship.positions}
+            color={ship.color}
+            cellSize={cellSize}
+            gridSize={gridSize}
+            onPositionChange={updateShipPosition}
+          />
+        ))}
       </div>
+
+      {isReady && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
+          <h1 className="text-4xl text-white">¡El juego está listo!</h1>
+        </div>
+      )}
+
+      <div className="ml-4 mt-4 flex flex-col items-start">
+        <h2>Posiciones de los barcos:</h2>
+        <ul>
+          {ships.map((ship) => (
+            <li key={ship.id}>
+              <strong>{ship.id}:</strong>{" "}
+              {ship.positions.map((pos) => `(${pos.x}, ${pos.y})`).join(", ")}
+            </li>
+          ))}
+        </ul>
+        <div className="flex justify-center mt-6">
+          <Button
+            type="primary"
+            style={{ backgroundColor: "#ff9800", borderColor: "#ff9800" }}
+            onClick={sendShipSetup}
+          >
+            Estoy listo
+          </Button>
+        </div>
+        <div className="flex justify-center mt-2">
+          <Button
+            type="default"
+            style={{ backgroundColor: "#4caf50", borderColor: "#4caf50" }}
+            onClick={sendAutoPlayRequest}
+          >
+            Generar autoPlay
+          </Button>
+        </div>
+        <div className="flex justify-center mt-2">
+          <Button
+            type="default"
+            style={{ backgroundColor: "#f44336", borderColor: "#f44336" }}
+            onClick={abandonGame}
+          >
+            Abandonar
+          </Button>
+        </div>
+        {awaitingApproval && (
+          <div className="flex justify-center mt-2">
+            <Button
+              type="primary"
+              style={{ backgroundColor: "#ff9800", borderColor: "#ff9800" }}
+              onClick={sendShipSetup}
+            >
+              Aceptar Configuración
+            </Button>
+            <Button
+              type="default"
+              style={{
+                backgroundColor: "#f44336",
+                borderColor: "#f44336",
+                marginLeft: "10px",
+              }}
+              onClick={sendAutoPlayRequest}
+            >
+              Regenerar
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 
 export default SetupGame;
-
